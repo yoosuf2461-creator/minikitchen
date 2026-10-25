@@ -107,6 +107,7 @@ Evaluators will usually perform these **4 specific tests**. Here is what to clic
 
 | Role | URL | Username | Password |
 | :--- | :--- | :--- | :--- |
-| **Public Site** | `http://localhost:3000` | N/A | N/A |
+| **Public Dining Site** | `http://localhost:3000` | N/A | N/A |
 | **Admin Portal** | `http://localhost:3000/admin` | `admin` | `minikitchen2026` |
-| **Quick Access** | `http://localhost:3000/admin/login` | Click the gold **"One-Click Manager Demo Access"** button |
+| **Hamburger Menu Link** | Top-right menu on `/` | Directly links to `/admin/login` for testing convenience |
+

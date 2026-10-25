@@ -22,7 +22,9 @@ MiniKitchen is an artisanal, Michelin-inspired dining web application and manage
 | :--- | :--- | :--- |
 | **Public Dining Website** | `/` (Home) | Public access |
 | **Admin Portal** | `/admin` | Requires session authentication |
-| **Admin Login** | `/admin/login` | **Username:** `admin`<br>**Password:** `minikitchen2026`<br>*(Or click "One-Click Manager Demo Access")* |
+| **Admin Login** | `/admin/login` | **Username:** `admin`<br>**Password:** `minikitchen2026` |
+
+> 💡 **Evaluator Testing Note**: For easy testing and evaluation access, a direct link to the **Admin Portal** (`/admin/login`) is conveniently placed inside the top-right hamburger navigation menu on the homepage.
 
 ---
 

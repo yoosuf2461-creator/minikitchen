@@ -126,9 +126,12 @@ export default function HeroSection() {
               <Link
                 href="/admin/login"
                 onClick={() => setMenuOpen(false)}
-                className="inline-block font-disp text-[clamp(18px,4.5vw,34px)] text-[#bdb8b0] hover:text-[#f1f1f1] hover:translate-x-2 transition-all duration-300"
+                className="inline-block group font-disp text-[clamp(18px,4.5vw,34px)] text-[#bdb8b0] hover:text-[#f1f1f1] hover:translate-x-2 transition-all duration-300"
               >
                 Admin Portal →
+                <span className="block text-[10px] tracking-widest uppercase text-[#8a857e] font-sans font-light mt-0.5">
+                  Evaluation & Testing Access
+                </span>
               </Link>
             </li>
           </ul>

@@ -194,7 +194,7 @@ export default function ChatWidget() {
                   </span>
                 </div>
                 <p className="text-[10px] text-[#8a857e] font-body m-0">
-                  Google Gemini / n8n • Live Kitchen Sync
+                  Artisanal Dining Host • Online
                 </p>
               </div>
             </div>

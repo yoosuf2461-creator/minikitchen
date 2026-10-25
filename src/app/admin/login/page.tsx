@@ -11,21 +11,18 @@ export default function AdminLoginPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e?: React.FormEvent, customUser?: string, customPass?: string) => {
-    if (e) e.preventDefault();
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setErrorMsg(null);
     setLoading(true);
-
-    const loginUser = customUser !== undefined ? customUser : username;
-    const loginPass = customPass !== undefined ? customPass : password;
 
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: loginUser,
-          password: loginPass,
+          username,
+          password,
         }),
       });
 
@@ -43,12 +40,6 @@ export default function AdminLoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickDemoLogin = () => {
-    setUsername('admin');
-    setPassword('minikitchen2026');
-    handleLogin(undefined, 'admin', 'minikitchen2026');
   };
 
   return (
@@ -72,7 +63,7 @@ export default function AdminLoginPage() {
         </Link>
       </header>
 
-      {/* Main Login Form Container (Anti-Slop: clean architectural lines, no boxy SaaS card) */}
+      {/* Main Login Form Container */}
       <main className="max-w-md w-full mx-auto my-12">
         <div className="mb-8">
           <p className="text-xs uppercase tracking-[0.25em] text-[#8a857e] font-light mb-2">
@@ -84,26 +75,6 @@ export default function AdminLoginPage() {
           <p className="text-xs sm:text-sm text-[#bdb8b0] font-light mt-2 leading-relaxed">
             Access table reservations, live seasonal menu controls, and dining room availability.
           </p>
-        </div>
-
-        {/* 1-Click Quick Demo Access Button */}
-        <div className="border border-white/15 bg-[#171615] p-4 mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] uppercase tracking-widest text-[#8a857e]">
-              Review & Grading Shortcut
-            </span>
-            <span className="text-[10px] text-[#d4cebe] font-mono">
-              admin / minikitchen2026
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={handleQuickDemoLogin}
-            disabled={loading}
-            className="w-full py-3 px-4 border border-white/20 bg-white/5 hover:bg-[#f1f1f1] hover:text-[#121110] text-[#f1f1f1] text-xs uppercase tracking-widest transition-all duration-300 cursor-pointer text-center font-light disabled:opacity-50"
-          >
-            {loading ? 'Authenticating...' : '1-Click Manager Demo Access →'}
-          </button>
         </div>
 
         {/* Manual Credentials Form */}
