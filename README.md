@@ -63,10 +63,20 @@ sequenceDiagram
 - Submits directly to `/api/reservations` with status `Pending` and generates an instant digital reservation token with reference ID.
 
 ### 3. Real-Time Admin Operations & Menu Sync
+- **Mobile-Optimized Management**: Responsive controls with touch-friendly swipeable tabs for phone, tablet, and desktop viewports.
 - **Live Menu Availability**: Managers can toggle any dish between `● Available` and `○ Sold Out` with one click. Sold-out dishes immediately desaturate on the public website with strikethrough pricing (`~~LKR 6,200~~ Sold out`), and Remy the AI automatically warns inquiring guests in chat.
 - **Dish Creation & Editing**: Add new seasonal creations with categories, prices, and dietary tags or edit existing items.
 - **7-Day Service Schedule & Hours**: Change opening/closing times per day and toggle closure days (`○ Closed / Rest Day` $\leftrightarrow$ `● Open Service`).
 - **Identity & Contact Info**: Update telephone, address, and email dynamically.
+
+### 4. Automated Notification Dispatch Preparation (WhatsApp / SMS / Email)
+- When a manager clicks **"Confirm Table"** in `/admin`:
+  - The status is immediately saved as **`Confirmed`** in the persistent database.
+  - A notification drawer pops up automatically with pre-filled guest and booking details.
+  - **1-Click WhatsApp**: Formatted `https://wa.me/...` URL with personalized booking message.
+  - **1-Click Native SMS**: Opens the device's native messaging application with recipient phone and body ready to send.
+  - **1-Click Email**: Pre-filled `mailto:` link with subject line and formal confirmation text.
+  - **Live Editable Draft**: Changes typed in the draft reflect instantly in all dispatch links, with a 1-click **"Copy Text"** clipboard button.
 
 ---
 
@@ -107,7 +117,7 @@ minikitchen/
 
 ---
 
-## ⚙️ Environment Variables & AI Configuration
+## ⚙️ Environment Variables & Database Configuration
 
 Create a `.env.local` file in the project root:
 
@@ -119,9 +129,10 @@ GEMINI_API_KEY=your_gemini_api_key_here
 # Model Selection (defaults to gemini-3.1-flash-lite for ~1.6s ultra-fast responses)
 GEMINI_MODEL=gemini-3.1-flash-lite
 
-# 2. n8n Automation Webhook (Optional):
-#    If routing conversations via an n8n workflow instead of direct API:
-# N8N_WEBHOOK_URL=https://your-n8n-instance.app/webhook/minikitchen-chat
+# 2. Supabase Persistent Cloud Database (Optional for Multi-Device Global Sync):
+#    Provides instant live synchronization across multiple devices, mobile phones, and laptops:
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 ```
 
 ### AI Resilience & Auto-Failover
@@ -131,14 +142,18 @@ GEMINI_MODEL=gemini-3.1-flash-lite
 
 ---
 
-## 💾 Data Setup & Persistence
+## 💾 Data Setup & Dual-Layer Persistence
 
-- **Zero-Setup Database**: The database is powered by an atomic JSON file store located at [`data/restaurant.json`](data/restaurant.json).
-- **Pre-Seeded Data**:
-  - 13 seasonal dishes across Starters, Mains, Desserts, and Craft Beverages with authentic photography.
-  - 7-day dining schedule (Monday–Sunday) with dinner services and weekend lunch sessions.
-  - Colombo flagship address (`142 Galle Road, Kollupitiya`).
-- **Persistence Guarantee**: All reservation requests, status changes, menu edits, and hour updates persist permanently across server restarts.
+MiniKitchen features a dual-layer persistence architecture designed for zero configuration locally and global persistence in production:
+
+1. **Production Cloud Database (Supabase)**:
+   - When `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are provided, the application connects to a Supabase PostgreSQL database.
+   - All table reservations, menu availability toggles, and schedule adjustments synchronize across all devices and serverless lambdas globally.
+   - Initial schema and seed data are available in [`supabase-schema.sql`](supabase-schema.sql).
+
+2. **Zero-Setup Local Fallback (Atomic JSON)**:
+   - If Supabase is not configured, the database automatically falls back to an atomic JSON file store located at [`data/restaurant.json`](data/restaurant.json).
+   - In serverless environments, writes are routed to `/tmp` with an in-memory fallback cache to ensure zero request crashes.
 
 ---
 
