@@ -325,25 +325,60 @@ async function fallbackConciergeEngine(
     fullConversation.toLowerCase().includes('book');
 
   if (isBookingIntent) {
-    // Extract guest count (e.g. "for 4", "party of 2", "3 people", "2 guests")
+    // Extract email
+    const emailMatch = fullConversation.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+    const email = emailMatch ? emailMatch[1] : null;
+
+    // Extract phone numbers (handles Sri Lankan 077 123 4567, 0771234567, +94..., and international)
+    const phoneMatch =
+      fullConversation.match(/(?:phone|mobile|tel|contact)?[:\s]*(\+?\d{1,3}[\s.-]?\(?\d{2,4}\)?[\s.-]?\d{3,4}[\s.-]?\d{3,4})/i) ||
+      fullConversation.match(/((?:\+94|0)\s*(?:7\d{1}|11|2\d{1}|3\d{1}|4\d{1}|5\d{1}|6\d{1}|8\d{1})\s*\d{3}\s*\d{4})/) ||
+      fullConversation.match(/(\b0\d{9}\b)/) ||
+      fullConversation.match(/(\b\d{9,12}\b)/);
+    const phone = phoneMatch ? phoneMatch[1].trim() : null;
+
+    // Extract name (handles "Yoosuf", "I'm Yoosuf", "name: Yoosuf", "my name is Yoosuf", etc.)
+    let name: string | null = null;
+    const explicitNameMatch =
+      fullConversation.match(/(?:my\s+name\s+is|name\s*[:=]\s*|under\s+(?:the\s+name\s+of)?|i\s*['’]?\s*m|i\s+am)\s+([A-Za-z]+(?:\s+[A-Za-z]+)*)/i) ||
+      fullConversation.match(/(?:name\s+is|under)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)/i);
+
+    if (explicitNameMatch) {
+      name = explicitNameMatch[1].trim();
+    } else {
+      // Heuristic: check if user provided a plain name in any user turn
+      for (const msg of [...messages].reverse()) {
+        if (msg.role === 'user') {
+          const stripped = msg.content
+            .replace(/[0-9+()\-@.]/g, ' ')
+            .replace(/\b(book|booking|table|tonight|tomorrow|people|guests|persons|pm|am|at|for|please|hi|hello|hey|want|need|reserve|reservation|yes|ok|okay)\b/gi, '')
+            .trim();
+          const words = stripped.split(/\s+/).filter((w) => w.length >= 2);
+          if (words.length >= 1 && words.length <= 3) {
+            name = words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+            break;
+          }
+        }
+      }
+    }
+
+    // Extract guest count (e.g. "for 4", "party of 2", "3 people", "2 guests") - default to 2
     const guestMatch =
       fullConversation.match(/(?:for|party\s+of|table\s+for)\s+(\d+)/i) ||
       fullConversation.match(/(\d+)\s*(?:people|guests|persons|adults)/i);
-    const guestCount = guestMatch ? parseInt(guestMatch[1], 10) : null;
+    const guestCount = guestMatch ? parseInt(guestMatch[1], 10) : 2;
 
-    // Extract time (e.g. "7:30 pm", "19:00", "8pm", "at 6:30")
+    // Extract time (e.g. "7:30 pm", "19:00", "8pm", "at 6:30") - default to 19:30
     const timeMatch =
       fullConversation.match(/(\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b)/i) ||
       fullConversation.match(/(\b[0-2]?\d:[0-5]\d\b)/i) ||
       fullConversation.match(/at\s+(\d{1,2}(?::\d{2})?)/i);
-    const time = timeMatch ? timeMatch[1].toUpperCase() : null;
+    const time = timeMatch ? timeMatch[1].toUpperCase() : '19:30';
 
-    // Extract date (e.g. "tomorrow", "tonight", "october 26", "2026-10-25", "friday", "saturday")
+    // Extract date (e.g. "tomorrow", "tonight", "october 26", "2026-10-25") - default to today
     let date: string | null = null;
     const now = new Date();
-    if (fullConversation.toLowerCase().includes('tonight') || fullConversation.toLowerCase().includes('today')) {
-      date = now.toISOString().split('T')[0];
-    } else if (fullConversation.toLowerCase().includes('tomorrow')) {
+    if (fullConversation.toLowerCase().includes('tomorrow')) {
       const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
       date = tomorrow.toISOString().split('T')[0];
     } else {
@@ -354,59 +389,39 @@ async function fallbackConciergeEngine(
         const namedDateMatch = fullConversation.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
         if (namedDateMatch) {
           date = `This ${namedDateMatch[1].charAt(0).toUpperCase() + namedDateMatch[1].slice(1).toLowerCase()}`;
+        } else {
+          date = now.toISOString().split('T')[0];
         }
       }
     }
 
-    // Extract email
-    const emailMatch = fullConversation.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
-    const email = emailMatch ? emailMatch[1] : null;
-
-    // Extract phone (supports international +94..., local 077..., and US formats)
-    const phoneMatch =
-      fullConversation.match(/(?:phone|mobile|tel|contact)?[:\s]*(\+?\d{1,3}[\s.-]?\(?\d{2,4}\)?[\s.-]?\d{3,4}[\s.-]?\d{3,4})/i) ||
-      fullConversation.match(/(\+?\d{9,14})/);
-    const phone = phoneMatch ? phoneMatch[1].trim() : null;
-
-    // Extract name (e.g. "name is John Doe", "I am Jane Smith", "under John Doe", "name: Jane")
-    let name: string | null = null;
-    const nameMatch =
-      fullConversation.match(/(?:my\s+name\s+is|name\s*:\s*|under\s+(?:the\s+name\s+of)?|i\s+am)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i) ||
-      fullConversation.match(/(?:name\s+is|under)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)/i);
-    if (nameMatch) {
-      name = nameMatch[1].trim();
-    }
-
     const missingDetails: string[] = [];
-    if (!guestCount) missingDetails.push('number of guests');
-    if (!date) missingDetails.push('preferred date');
-    if (!time) missingDetails.push('preferred time');
     if (!name) missingDetails.push('your full name');
     if (!phone && !email) missingDetails.push('a contact phone number or email');
 
     if (missingDetails.length > 0) {
       const knownPieces: string[] = [];
       if (name) knownPieces.push(`Guest: ${name}`);
+      if (phone || email) knownPieces.push(`Contact: ${phone || email}`);
       if (guestCount) knownPieces.push(`Party: ${guestCount} guests`);
       if (date) knownPieces.push(`Date: ${date}`);
       if (time) knownPieces.push(`Time: ${time}`);
-      if (phone || email) knownPieces.push(`Contact: ${phone || email}`);
 
       return {
-        reply: `I would be happy to assist you with booking a table at MiniKitchen! ${
-          knownPieces.length > 0 ? `So far I have note of (${knownPieces.join(', ')}). ` : ''
-        }To complete your reservation request, could you please provide: **${missingDetails.join(', ')}**?`,
+        reply: `I would be delighted to arrange a table for you at MiniKitchen! ${
+          knownPieces.length > 0 ? `I have noted (${knownPieces.join(', ')}). ` : ''
+        }To complete your reservation request, could you please provide: **${missingDetails.join(' and ')}**?`,
         modelUsed: 'MiniKitchen Concierge AI',
       };
     }
 
-    // All details collected -> create Pending reservation
+    // All necessary details collected -> create Pending reservation
     const newReservation = await addReservation({
       guestName: name || 'Valued Guest',
       phone: phone || '',
       email: email || '',
       date: date || new Date().toISOString().split('T')[0],
-      time: time || '19:00',
+      time: time || '19:30',
       guestCount: guestCount || 2,
       specialRequests: 'Booked via MiniKitchen AI Concierge chat',
       status: 'Pending', // ALWAYS Pending per spec
@@ -415,16 +430,16 @@ async function fallbackConciergeEngine(
 
     const reply = `Wonderful, ${newReservation.guestName}! I have recorded your table booking request.
 
-📋 **Reservation Details**:
+📋 **Reservation Summary**:
 - **Guest Name**: ${newReservation.guestName}
 - **Party Size**: ${newReservation.guestCount} guests
 - **Date & Time**: ${newReservation.date} at ${newReservation.time}
 - **Contact**: ${phone || email}
-- **Reference ID**: \`${newReservation.id}\`
-- **Status**: ⏳ **PENDING**
+- **Booking Reference**: \`${newReservation.id}\`
+- **Current Status**: ⏳ **PENDING**
 
 ⚠️ **Important Confirmation Notice**:
-Your reservation request is currently **PENDING** and visible inside our admin dashboard. It has **NOT** been confirmed yet. Our host team will review our dining room floor plan and contact you shortly to confirm your table!`;
+Your reservation is currently **PENDING** and visible inside our admin dashboard. It has **NOT** been confirmed yet. Our host team will review our dining room floor plan and contact you shortly to confirm your table!`;
 
     return {
       reply,

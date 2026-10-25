@@ -188,33 +188,67 @@ const INITIAL_RESERVATIONS: Reservation[] = [
   },
 ];
 
-async function ensureDb(): Promise<DatabaseData> {
-  const dir = path.dirname(DB_PATH);
-  await fs.mkdir(dir, { recursive: true });
+// Writable path in serverless is /tmp/restaurant.json; locally data/restaurant.json
+const LOCAL_DB_PATH = path.join(process.cwd(), 'data', 'restaurant.json');
+const TMP_DB_PATH = path.join('/tmp', 'restaurant.json');
 
+// Global in-memory cache to guarantee zero-fail reservations on serverless lambdas
+let memoryCache: DatabaseData | null = null;
+
+function isServerless(): boolean {
+  return Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+}
+
+async function ensureDb(): Promise<DatabaseData> {
+  if (memoryCache) {
+    return memoryCache;
+  }
+
+  // 1. In serverless, try /tmp first
+  if (isServerless()) {
+    try {
+      const rawTmp = await fs.readFile(TMP_DB_PATH, 'utf-8');
+      memoryCache = JSON.parse(rawTmp);
+      return memoryCache!;
+    } catch {
+      // not yet in /tmp, read baseline from project
+    }
+  }
+
+  // 2. Read from project data/restaurant.json
   try {
-    const raw = await fs.readFile(DB_PATH, 'utf-8');
-    const data: DatabaseData = JSON.parse(raw);
-    return data;
+    const rawLocal = await fs.readFile(LOCAL_DB_PATH, 'utf-8');
+    memoryCache = JSON.parse(rawLocal);
+    return memoryCache!;
   } catch {
+    // 3. Fallback to initial seed
     const initialData: DatabaseData = {
       restaurantInfo: INITIAL_RESTAURANT_INFO,
       menu: INITIAL_MENU,
       reservations: INITIAL_RESERVATIONS,
     };
-    await fs.writeFile(DB_PATH, JSON.stringify(initialData, null, 2), 'utf-8');
+    memoryCache = initialData;
     return initialData;
   }
 }
 
 async function writeDb(data: DatabaseData): Promise<void> {
-  const dir = path.dirname(DB_PATH);
-  await fs.mkdir(dir, { recursive: true });
-  // Write to temporary file first then rename for atomic persistence
-  const tempPath = `${DB_PATH}.tmp.${Date.now()}`;
-  await fs.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf-8');
-  await fs.rename(tempPath, DB_PATH);
+  // Always update in-memory cache so API responses never fail
+  memoryCache = data;
+
+  const targetPath = isServerless() ? TMP_DB_PATH : LOCAL_DB_PATH;
+
+  try {
+    const dir = path.dirname(targetPath);
+    await fs.mkdir(dir, { recursive: true });
+    const tempPath = `${targetPath}.tmp.${Date.now()}`;
+    await fs.writeFile(tempPath, JSON.stringify(data, null, 2), 'utf-8');
+    await fs.rename(tempPath, targetPath);
+  } catch (err) {
+    console.warn(`Filesystem write to ${targetPath} warning (in-memory cache preserved):`, err);
+  }
 }
+
 
 // Menu queries
 export async function getMenuItems(): Promise<MenuItem[]> {

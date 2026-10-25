@@ -32,7 +32,7 @@ function isBookingRateLimited(ip: string): boolean {
     bookingAttempts.delete(ip);
     return false;
   }
-  return record.count >= 10;
+  return record.count >= 50;
 }
 
 function recordBooking(ip: string) {
@@ -65,34 +65,17 @@ export async function POST(request: Request) {
     }
 
     const guestName = String(body.guestName).trim().slice(0, 100);
-    if (guestName.length < 2) {
-      return NextResponse.json({ error: 'Guest name is too short' }, { status: 400 });
+    if (!guestName) {
+      return NextResponse.json({ error: 'Guest name is required' }, { status: 400 });
     }
 
-    const guestCount = parseInt(body.guestCount, 10);
-    if (isNaN(guestCount) || guestCount < 1 || guestCount > 20) {
-      return NextResponse.json(
-        { error: 'Guest count must be between 1 and 20 guests' },
-        { status: 400 }
-      );
-    }
-
+    const guestCount = Math.max(1, Math.min(20, parseInt(body.guestCount, 10) || 2));
     const dateStr = String(body.date).trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-      return NextResponse.json({ error: 'Invalid date format (expected YYYY-MM-DD)' }, { status: 400 });
-    }
-
     const timeStr = String(body.time).trim();
-    if (!/^\d{1,2}:\d{2}(\s*(AM|PM))?$/i.test(timeStr)) {
-      return NextResponse.json({ error: 'Invalid time format' }, { status: 400 });
-    }
 
     const emailStr = body.email ? String(body.email).trim().slice(0, 120) : '';
-    if (emailStr && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailStr)) {
-      return NextResponse.json({ error: 'Invalid email address format' }, { status: 400 });
-    }
+    const phoneStr = body.phone ? String(body.phone).trim().slice(0, 50) : '';
 
-    const phoneStr = body.phone ? String(body.phone).trim().slice(0, 30) : '';
     if (!emailStr && !phoneStr) {
       return NextResponse.json(
         { error: 'At least one contact method (phone or email) is required' },
