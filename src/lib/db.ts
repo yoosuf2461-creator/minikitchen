@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { MenuItem, Reservation, RestaurantInfo, ReservationStatus } from './types';
+import { supabase, isSupabaseConfigured } from './supabase';
 
 interface DatabaseData {
   restaurantInfo: RestaurantInfo;
@@ -250,29 +251,159 @@ async function writeDb(data: DatabaseData): Promise<void> {
 }
 
 
-// Menu queries
+// --- SUPABASE MAPPERS ---
+function mapRowToReservation(row: any): Reservation {
+  return {
+    id: row.id,
+    guestName: row.guest_name ?? row.guestName ?? 'Guest',
+    phone: row.phone || '',
+    email: row.email || '',
+    date: row.date || '',
+    time: row.time || '',
+    guestCount: Number(row.guest_count ?? row.guestCount ?? 2),
+    specialRequests: row.special_requests ?? row.specialRequests ?? '',
+    status: (row.status || 'Pending') as ReservationStatus,
+    createdAt: row.created_at ?? row.createdAt ?? new Date().toISOString(),
+    source: (row.source === 'ai_chatbot' ? 'ai_chatbot' : 'website_form') as 'website_form' | 'ai_chatbot',
+  };
+}
+
+function mapReservationToRow(res: Reservation) {
+  return {
+    id: res.id,
+    guest_name: res.guestName,
+    phone: res.phone,
+    email: res.email,
+    date: res.date,
+    time: res.time,
+    guest_count: res.guestCount,
+    special_requests: res.specialRequests || null,
+    status: res.status,
+    source: res.source,
+    created_at: res.createdAt,
+  };
+}
+
+function mapRowToMenuItem(row: any): MenuItem {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description || '',
+    price: Number(row.price || 0),
+    category: row.category,
+    available: Boolean(row.available),
+    dietary: Array.isArray(row.dietary) ? row.dietary : [],
+    badge: row.badge || undefined,
+    imageEmoji: row.image_emoji || row.imageEmoji || undefined,
+    imageUrl: row.image_url || row.imageUrl || undefined,
+  };
+}
+
+function mapMenuItemToRow(item: MenuItem) {
+  return {
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    price: item.price,
+    category: item.category,
+    available: item.available,
+    dietary: item.dietary || [],
+    badge: item.badge || null,
+    image_emoji: item.imageEmoji || null,
+    image_url: item.imageUrl || null,
+  };
+}
+
+// ==============================================================================
+// MENU QUERIES
+// ==============================================================================
 export async function getMenuItems(): Promise<MenuItem[]> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select('*')
+        .order('created_at', { ascending: true });
+      if (!error && data && data.length > 0) {
+        return data.map(mapRowToMenuItem);
+      }
+    } catch (err) {
+      console.warn('Supabase menu fetch warning, using local:', err);
+    }
+  }
+
   const db = await ensureDb();
   return db.menu;
 }
 
 export async function getMenuItemById(id: string): Promise<MenuItem | undefined> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (!error && data) {
+        return mapRowToMenuItem(data);
+      }
+    } catch (err) {
+      console.warn('Supabase menu item by id warning, using local:', err);
+    }
+  }
+
   const db = await ensureDb();
   return db.menu.find((item) => item.id === id);
 }
 
 export async function addMenuItem(item: Omit<MenuItem, 'id'>): Promise<MenuItem> {
-  const db = await ensureDb();
   const newItem: MenuItem = {
     ...item,
     id: `dish-${Date.now()}`,
   };
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('menu_items')
+        .insert(mapMenuItemToRow(newItem))
+        .select()
+        .single();
+      if (!error && data) {
+        return mapRowToMenuItem(data);
+      }
+    } catch (err) {
+      console.warn('Supabase add menu item warning, using local:', err);
+    }
+  }
+
+  const db = await ensureDb();
   db.menu.push(newItem);
   await writeDb(db);
   return newItem;
 }
 
 export async function updateMenuItem(id: string, updates: Partial<Omit<MenuItem, 'id'>>): Promise<MenuItem | null> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const rowUpdates: any = { ...updates };
+      if (updates.imageEmoji !== undefined) rowUpdates.image_emoji = updates.imageEmoji;
+      if (updates.imageUrl !== undefined) rowUpdates.image_url = updates.imageUrl;
+
+      const { data, error } = await supabase
+        .from('menu_items')
+        .update(rowUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (!error && data) {
+        return mapRowToMenuItem(data);
+      }
+    } catch (err) {
+      console.warn('Supabase update menu item warning, using local:', err);
+    }
+  }
+
   const db = await ensureDb();
   const index = db.menu.findIndex((m) => m.id === id);
   if (index === -1) return null;
@@ -283,16 +414,49 @@ export async function updateMenuItem(id: string, updates: Partial<Omit<MenuItem,
 }
 
 export async function toggleMenuItemAvailability(id: string): Promise<MenuItem | null> {
+  const current = await getMenuItemById(id);
+  if (!current) return null;
+
+  const newStatus = !current.available;
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('menu_items')
+        .update({ available: newStatus })
+        .eq('id', id)
+        .select()
+        .single();
+      if (!error && data) {
+        return mapRowToMenuItem(data);
+      }
+    } catch (err) {
+      console.warn('Supabase toggle availability warning, using local:', err);
+    }
+  }
+
   const db = await ensureDb();
   const item = db.menu.find((m) => m.id === id);
   if (!item) return null;
 
-  item.available = !item.available;
+  item.available = newStatus;
   await writeDb(db);
   return item;
 }
 
 export async function deleteMenuItem(id: string): Promise<boolean> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error } = await supabase
+        .from('menu_items')
+        .delete()
+        .eq('id', id);
+      if (!error) return true;
+    } catch (err) {
+      console.warn('Supabase delete menu item warning, using local:', err);
+    }
+  }
+
   const db = await ensureDb();
   const initialLen = db.menu.length;
   db.menu = db.menu.filter((m) => m.id !== id);
@@ -303,14 +467,46 @@ export async function deleteMenuItem(id: string): Promise<boolean> {
   return false;
 }
 
-// Reservation queries
+// ==============================================================================
+// RESERVATION QUERIES (GLOBAL PERSISTENCE VIA SUPABASE)
+// ==============================================================================
 export async function getReservations(): Promise<Reservation[]> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('reservations')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!error && Array.isArray(data)) {
+        return data.map(mapRowToReservation);
+      }
+      if (error) console.warn('Supabase reservations fetch error:', error);
+    } catch (err) {
+      console.warn('Supabase reservations error, falling back to local:', err);
+    }
+  }
+
   const db = await ensureDb();
   // Sort latest first
   return [...db.reservations].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 export async function getReservationById(id: string): Promise<Reservation | undefined> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('reservations')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (!error && data) {
+        return mapRowToReservation(data);
+      }
+    } catch (err) {
+      console.warn('Supabase get reservation by id warning:', err);
+    }
+  }
+
   const db = await ensureDb();
   return db.reservations.find((r) => r.id === id);
 }
@@ -318,19 +514,61 @@ export async function getReservationById(id: string): Promise<Reservation | unde
 export async function addReservation(
   reservation: Omit<Reservation, 'id' | 'createdAt' | 'status'> & { status?: ReservationStatus }
 ): Promise<Reservation> {
-  const db = await ensureDb();
   const newReservation: Reservation = {
     ...reservation,
     id: `res-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
     status: reservation.status || 'Pending', // ALWAYS default to Pending per requirements
     createdAt: new Date().toISOString(),
   };
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('reservations')
+        .insert(mapReservationToRow(newReservation))
+        .select()
+        .single();
+      if (!error && data) {
+        // Also keep memory cache fresh
+        if (memoryCache) {
+          memoryCache.reservations.unshift(newReservation);
+        }
+        return mapRowToReservation(data);
+      }
+      if (error) console.warn('Supabase insert reservation error:', error);
+    } catch (err) {
+      console.warn('Supabase insert reservation error, falling back to local:', err);
+    }
+  }
+
+  const db = await ensureDb();
   db.reservations.unshift(newReservation);
   await writeDb(db);
   return newReservation;
 }
 
 export async function updateReservationStatus(id: string, status: ReservationStatus): Promise<Reservation | null> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('reservations')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single();
+      if (!error && data) {
+        if (memoryCache) {
+          const res = memoryCache.reservations.find((r) => r.id === id);
+          if (res) res.status = status;
+        }
+        return mapRowToReservation(data);
+      }
+      if (error) console.warn('Supabase update reservation status error:', error);
+    } catch (err) {
+      console.warn('Supabase update reservation status error, falling back to local:', err);
+    }
+  }
+
   const db = await ensureDb();
   const res = db.reservations.find((r) => r.id === id);
   if (!res) return null;
@@ -341,6 +579,24 @@ export async function updateReservationStatus(id: string, status: ReservationSta
 }
 
 export async function deleteReservation(id: string): Promise<boolean> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error } = await supabase
+        .from('reservations')
+        .delete()
+        .eq('id', id);
+      if (!error) {
+        if (memoryCache) {
+          memoryCache.reservations = memoryCache.reservations.filter((r) => r.id !== id);
+        }
+        return true;
+      }
+      if (error) console.warn('Supabase delete reservation error:', error);
+    } catch (err) {
+      console.warn('Supabase delete reservation error, falling back to local:', err);
+    }
+  }
+
   const db = await ensureDb();
   const initialLen = db.reservations.length;
   db.reservations = db.reservations.filter((r) => r.id !== id);
@@ -351,18 +607,53 @@ export async function deleteReservation(id: string): Promise<boolean> {
   return false;
 }
 
+// ==============================================================================
+// RESTAURANT INFO QUERIES
+// ==============================================================================
 export async function getRestaurantInfo(): Promise<RestaurantInfo> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('restaurant_settings')
+        .select('data')
+        .eq('id', 'info')
+        .single();
+      if (!error && data && data.data) {
+        return data.data as RestaurantInfo;
+      }
+    } catch (err) {
+      console.warn('Supabase restaurant info error, using local:', err);
+    }
+  }
+
   const db = await ensureDb();
   return db.restaurantInfo;
 }
 
 export async function updateRestaurantInfo(updates: Partial<RestaurantInfo>): Promise<RestaurantInfo> {
-  const db = await ensureDb();
-  db.restaurantInfo = {
-    ...db.restaurantInfo,
+  const current = await getRestaurantInfo();
+  const updatedInfo: RestaurantInfo = {
+    ...current,
     ...updates,
-    hours: updates.hours || db.restaurantInfo.hours,
+    hours: updates.hours || current.hours,
   };
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error } = await supabase
+        .from('restaurant_settings')
+        .upsert({ id: 'info', data: updatedInfo, updated_at: new Date().toISOString() });
+      if (!error) {
+        if (memoryCache) memoryCache.restaurantInfo = updatedInfo;
+        return updatedInfo;
+      }
+    } catch (err) {
+      console.warn('Supabase update restaurant info error, using local:', err);
+    }
+  }
+
+  const db = await ensureDb();
+  db.restaurantInfo = updatedInfo;
   await writeDb(db);
   return db.restaurantInfo;
 }
