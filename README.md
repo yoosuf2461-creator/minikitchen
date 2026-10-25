@@ -14,15 +14,13 @@ MiniKitchen is an artisanal, Michelin-inspired dining web application and manage
 
 ---
 
-## 🔑 Quick Start, Live Links & Credentials
+## 🔑 Quick Start & Credentials
 
-| Resource | Path / URL | Access Credentials / Notes |
+| Resource | Path / URL | Access Credentials |
 | :--- | :--- | :--- |
-| 🎬 **Video Editing Task** | [Google Drive Video Link](https://drive.google.com/file/d/1s32ucdlQjRi66pvO1vaQOgVXRf7gpm3h/view) | Podcast video editing evaluation test |
-| 🌐 **Live Website** | [https://minikitchen-mkc4-delta.vercel.app](https://minikitchen-mkc4-delta.vercel.app/) | Deployed on Vercel Edge Serverless |
-| 🛡️ **Admin Portal** | [`/admin`](https://minikitchen-mkc4-delta.vercel.app/admin) | Requires session authentication |
-| 🔑 **Admin Login** | [`/admin/login`](https://minikitchen-mkc4-delta.vercel.app/admin/login) | **Username:** `admin`<br>**Password:** `minikitchen2026` |
-| 📄 **Submission File** | [`SUBMISSION.md`](./SUBMISSION.md) | Official submission links |
+| **Public Dining Website** | `/` (Home) | Public access |
+| **Admin Portal** | `/admin` | Requires session authentication |
+| **Admin Login** | `/admin/login` | **Username:** `admin`<br>**Password:** `minikitchen2026` |
 
 > 💡 **Evaluator Testing Note**: For easy testing and evaluation access, a direct link to the **Admin Portal** (`/admin/login`) is conveniently placed inside the top-right hamburger navigation menu on the homepage.
 
