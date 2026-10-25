@@ -11,7 +11,6 @@ MiniKitchen is an artisanal, Michelin-inspired dining web application and manage
 - [Environment Variables & AI Configuration](#-environment-variables--ai-configuration)
 - [Data Setup & Persistence](#-data-setup--persistence)
 - [Local Installation](#-local-installation)
-- [Deployment Guide](#-deployment-guide)
 
 ---
 
@@ -176,13 +175,3 @@ GEMINI_MODEL=gemini-3.1-flash-lite
    npm run build
    ```
 
----
-
-## ☁️ Deployment Guide (Vercel)
-
-1. Push your code to a public GitHub repository.
-2. Go to [Vercel](https://vercel.com/) and click **"Add New Project"** $\rightarrow$ **"Import"** your repository.
-3. In **Environment Variables**, add:
-   - `GEMINI_API_KEY`: Your Google Gemini API Key.
-   - `GEMINI_MODEL`: `gemini-3.1-flash-lite`
-4. Click **Deploy**. Vercel will build and deploy the Next.js application automatically.
