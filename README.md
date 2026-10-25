@@ -18,11 +18,11 @@ MiniKitchen is an artisanal, Michelin-inspired dining web application and manage
 
 | Resource | Path / URL | Access Credentials / Notes |
 | :--- | :--- | :--- |
-| 🎥 **Video Walkthrough** | [Google Drive Video Demo](https://drive.google.com/file/d/1s32ucdlQjRi66pvO1vaQOgVXRf7gpm3h/view) | Evaluator feature walkthrough & viva presentation |
+| 🎬 **Video Editing Task** | [Google Drive Video Link](https://drive.google.com/file/d/1s32ucdlQjRi66pvO1vaQOgVXRf7gpm3h/view) | Podcast video editing evaluation test |
 | 🌐 **Live Website** | [https://minikitchen-mkc4-delta.vercel.app](https://minikitchen-mkc4-delta.vercel.app/) | Deployed on Vercel Edge Serverless |
 | 🛡️ **Admin Portal** | [`/admin`](https://minikitchen-mkc4-delta.vercel.app/admin) | Requires session authentication |
 | 🔑 **Admin Login** | [`/admin/login`](https://minikitchen-mkc4-delta.vercel.app/admin/login) | **Username:** `admin`<br>**Password:** `minikitchen2026` |
-| 📄 **Submission Dossier** | [`SUBMISSION.md`](./SUBMISSION.md) | Official submission summary with test scripts |
+| 📄 **Submission File** | [`SUBMISSION.md`](./SUBMISSION.md) | Official submission links |
 
 > 💡 **Evaluator Testing Note**: For easy testing and evaluation access, a direct link to the **Admin Portal** (`/admin/login`) is conveniently placed inside the top-right hamburger navigation menu on the homepage.
 
