@@ -42,6 +42,8 @@ export default function AdminDashboardPage() {
   // Automated Notification Preparation State
   const [dispatchReservation, setDispatchReservation] = useState<Reservation | null>(null);
   const [customMessage, setCustomMessage] = useState('');
+  const [targetEmail, setTargetEmail] = useState('');
+  const [targetPhone, setTargetPhone] = useState('');
   const [copiedToast, setCopiedToast] = useState(false);
 
   const getCleanPhoneForWhatsApp = (phone: string) => {
@@ -57,6 +59,8 @@ export default function AdminDashboardPage() {
 
   const openDispatchModal = (res: Reservation) => {
     setDispatchReservation(res);
+    setTargetEmail(res.email || '');
+    setTargetPhone(res.phone || '');
     setCopiedToast(false);
 
     const notesLine = res.specialRequests && res.specialRequests.trim()
@@ -554,7 +558,16 @@ MiniKitchen Management`;
                           )}
                           {res.email && (
                             <span className="col-span-2 sm:col-auto">
-                              Email: <a href={`mailto:${res.email}`} className="text-[#f1f1f1] underline hover:text-white break-all">{res.email}</a>
+                              Email:{' '}
+                              <button
+                                type="button"
+                                onClick={() => openDispatchModal(res)}
+                                className="text-[#f1f1f1] underline hover:text-[#d4a359] break-all cursor-pointer inline-flex items-center gap-1 text-left"
+                                title="Click to prepare and dispatch confirmation"
+                              >
+                                <span>{res.email}</span>
+                                <span className="text-[10px] text-[#d4a359]">↗</span>
+                              </button>
                             </span>
                           )}
                         </div>
@@ -1118,13 +1131,27 @@ MiniKitchen Management`;
                 <span className="text-[10px] uppercase tracking-wider text-[#8a857e] block">Schedule</span>
                 <span className="text-[#f1f1f1] font-medium">{dispatchReservation.date} @ {dispatchReservation.time}</span>
               </div>
-              <div className="col-span-2 sm:col-span-3 pt-2 border-t border-white/5 flex flex-wrap gap-x-4 gap-y-1">
-                {dispatchReservation.phone && (
-                  <span>Tel: <strong className="text-[#f1f1f1] font-mono">{dispatchReservation.phone}</strong></span>
-                )}
-                {dispatchReservation.email && (
-                  <span>Email: <strong className="text-[#f1f1f1] break-all">{dispatchReservation.email}</strong></span>
-                )}
+              <div className="col-span-2 sm:col-span-3 pt-3 border-t border-white/10 flex flex-col sm:flex-row gap-2.5">
+                <div className="flex items-center gap-2 flex-1">
+                  <span className="text-[10px] uppercase text-[#8a857e] w-10 shrink-0">Tel:</span>
+                  <input
+                    type="text"
+                    value={targetPhone}
+                    onChange={(e) => setTargetPhone(e.target.value)}
+                    placeholder="Guest phone number..."
+                    className="bg-[#191816] border border-white/15 px-3 py-1.5 text-xs text-[#f1f1f1] font-mono w-full focus:outline-none focus:border-white/50"
+                  />
+                </div>
+                <div className="flex items-center gap-2 flex-1">
+                  <span className="text-[10px] uppercase text-[#8a857e] w-10 shrink-0">Email:</span>
+                  <input
+                    type="email"
+                    value={targetEmail}
+                    onChange={(e) => setTargetEmail(e.target.value)}
+                    placeholder="Guest email address..."
+                    className="bg-[#191816] border border-white/15 px-3 py-1.5 text-xs text-[#f1f1f1] w-full focus:outline-none focus:border-white/50"
+                  />
+                </div>
               </div>
             </div>
 
@@ -1133,51 +1160,99 @@ MiniKitchen Management`;
               <span className="text-[10px] uppercase tracking-[0.2em] text-[#8a857e] block mb-2 font-light">
                 Direct Dispatch Channels (1-Click)
               </span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 
                 {/* Channel 1: WhatsApp */}
-                {dispatchReservation.phone ? (
+                {targetPhone ? (
                   <a
-                    href={`https://wa.me/${getCleanPhoneForWhatsApp(dispatchReservation.phone)}?text=${encodeURIComponent(customMessage)}`}
+                    href={`https://wa.me/${getCleanPhoneForWhatsApp(targetPhone)}?text=${encodeURIComponent(customMessage)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 px-3 py-2.5 border border-[#25D366]/40 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#f1f1f1] text-xs uppercase tracking-wider transition-colors text-center"
+                    className="flex items-center justify-center gap-1.5 px-2 py-2.5 border border-[#25D366]/40 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#f1f1f1] text-[11px] sm:text-xs uppercase tracking-wider transition-colors text-center"
+                    title="Send via WhatsApp Web / App"
                   >
                     <span>💬</span>
                     <span>WhatsApp</span>
                   </a>
                 ) : (
-                  <span className="flex items-center justify-center px-3 py-2.5 border border-white/5 text-[#6b6760] text-xs uppercase tracking-wider text-center">
+                  <span className="flex items-center justify-center px-2 py-2.5 border border-white/5 text-[#6b6760] text-[11px] sm:text-xs uppercase tracking-wider text-center">
                     No Phone
                   </span>
                 )}
 
                 {/* Channel 2: Native SMS */}
-                {dispatchReservation.phone ? (
+                {targetPhone ? (
                   <a
-                    href={`sms:${dispatchReservation.phone}?body=${encodeURIComponent(customMessage)}`}
-                    className="flex items-center justify-center gap-2 px-3 py-2.5 border border-white/20 bg-white/5 hover:bg-white/10 text-[#f1f1f1] text-xs uppercase tracking-wider transition-colors text-center"
+                    href={`sms:${targetPhone}?body=${encodeURIComponent(customMessage)}`}
+                    className="flex items-center justify-center gap-1.5 px-2 py-2.5 border border-white/20 bg-white/5 hover:bg-white/10 text-[#f1f1f1] text-[11px] sm:text-xs uppercase tracking-wider transition-colors text-center"
+                    title="Open in native mobile SMS app"
                   >
                     <span>📱</span>
-                    <span>Send SMS</span>
+                    <span>SMS</span>
                   </a>
                 ) : (
-                  <span className="flex items-center justify-center px-3 py-2.5 border border-white/5 text-[#6b6760] text-xs uppercase tracking-wider text-center">
+                  <span className="flex items-center justify-center px-2 py-2.5 border border-white/5 text-[#6b6760] text-[11px] sm:text-xs uppercase tracking-wider text-center">
                     No Phone
                   </span>
                 )}
 
-                {/* Channel 3: Email */}
-                {dispatchReservation.email ? (
+                {/* Channel 3: Gmail Web (Guaranteed in Browser) */}
+                {targetEmail ? (
                   <a
-                    href={`mailto:${dispatchReservation.email}?subject=${encodeURIComponent(`MiniKitchen Table Confirmation - Ref #${dispatchReservation.id}`)}&body=${encodeURIComponent(customMessage)}`}
-                    className="flex items-center justify-center gap-2 px-3 py-2.5 border border-white/20 bg-white/5 hover:bg-white/10 text-[#f1f1f1] text-xs uppercase tracking-wider transition-colors text-center"
+                    href={`https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(targetEmail)}&su=${encodeURIComponent(`MiniKitchen Table Confirmation - Ref #${dispatchReservation.id}`)}&body=${encodeURIComponent(customMessage)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1.5 px-2 py-2.5 border border-[#EA4335]/40 bg-[#EA4335]/10 hover:bg-[#EA4335]/20 text-[#f1f1f1] text-[11px] sm:text-xs uppercase tracking-wider transition-colors text-center"
+                    title="Open draft directly in Gmail browser tab"
                   >
-                    <span>✉️</span>
-                    <span>Send Email</span>
+                    <span>📮</span>
+                    <span>Gmail</span>
                   </a>
                 ) : (
-                  <span className="flex items-center justify-center px-3 py-2.5 border border-white/5 text-[#6b6760] text-xs uppercase tracking-wider text-center">
+                  <span className="flex items-center justify-center px-2 py-2.5 border border-white/5 text-[#6b6760] text-[11px] sm:text-xs uppercase tracking-wider text-center">
+                    No Email
+                  </span>
+                )}
+
+                {/* Channel 4: Outlook Web */}
+                {targetEmail ? (
+                  <a
+                    href={`https://outlook.live.com/mail/0/deeplink/compose?to=${encodeURIComponent(targetEmail)}&subject=${encodeURIComponent(`MiniKitchen Table Confirmation - Ref #${dispatchReservation.id}`)}&body=${encodeURIComponent(customMessage)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1.5 px-2 py-2.5 border border-[#0078D4]/40 bg-[#0078D4]/10 hover:bg-[#0078D4]/20 text-[#f1f1f1] text-[11px] sm:text-xs uppercase tracking-wider transition-colors text-center"
+                    title="Open draft directly in Outlook webmail"
+                  >
+                    <span>📧</span>
+                    <span>Outlook</span>
+                  </a>
+                ) : (
+                  <span className="flex items-center justify-center px-2 py-2.5 border border-white/5 text-[#6b6760] text-[11px] sm:text-xs uppercase tracking-wider text-center">
+                    No Email
+                  </span>
+                )}
+
+                {/* Channel 5: Default Mail App (mailto:) with clipboard copy fallback */}
+                {targetEmail ? (
+                  <a
+                    href={`mailto:${encodeURIComponent(targetEmail)}?subject=${encodeURIComponent(`MiniKitchen Table Confirmation - Ref #${dispatchReservation.id}`)}&body=${encodeURIComponent(customMessage.replace(/\r?\n/g, '\r\n'))}`}
+                    onClick={() => {
+                      try {
+                        navigator.clipboard.writeText(`To: ${targetEmail}\nSubject: MiniKitchen Table Confirmation - Ref #${dispatchReservation.id}\n\n${customMessage}`);
+                        setCopiedToast(true);
+                        setTimeout(() => setCopiedToast(false), 3000);
+                      } catch (e) {
+                        console.error('Clipboard copy failed:', e);
+                      }
+                    }}
+                    className="flex items-center justify-center gap-1.5 px-2 py-2.5 border border-white/20 bg-white/5 hover:bg-white/10 text-[#f1f1f1] text-[11px] sm:text-xs uppercase tracking-wider transition-colors text-center"
+                    title="Open default desktop mail app (or copies draft to clipboard if no app installed)"
+                  >
+                    <span>✉️</span>
+                    <span>Mail App</span>
+                  </a>
+                ) : (
+                  <span className="flex items-center justify-center px-2 py-2.5 border border-white/5 text-[#6b6760] text-[11px] sm:text-xs uppercase tracking-wider text-center">
                     No Email
                   </span>
                 )}
