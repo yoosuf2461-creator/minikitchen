@@ -5,7 +5,6 @@ MiniKitchen is an artisanal, Michelin-inspired dining web application and manage
 ---
 
 ## 📋 Table of Contents
-- [Evaluator Q&A & Live Testing Cheat Sheet](qa/EVALUATOR-QA.md)
 - [Quick Start & Credentials](#-quick-start--credentials)
 - [Key Workflows](#-key-workflows)
 - [System Architecture](#-system-architecture)
