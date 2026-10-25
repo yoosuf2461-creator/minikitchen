@@ -39,6 +39,63 @@ export default function AdminDashboardPage() {
     imageUrl: '',
   });
 
+  // Automated Notification Preparation State
+  const [dispatchReservation, setDispatchReservation] = useState<Reservation | null>(null);
+  const [customMessage, setCustomMessage] = useState('');
+  const [copiedToast, setCopiedToast] = useState(false);
+
+  const getCleanPhoneForWhatsApp = (phone: string) => {
+    let clean = phone.replace(/[^\d+]/g, '');
+    if (clean.startsWith('+')) {
+      clean = clean.substring(1);
+    } else if (clean.startsWith('0')) {
+      // Sri Lankan standard: replace leading 0 with country code 94
+      clean = '94' + clean.substring(1);
+    }
+    return clean;
+  };
+
+  const openDispatchModal = (res: Reservation) => {
+    setDispatchReservation(res);
+    setCopiedToast(false);
+
+    const notesLine = res.specialRequests && res.specialRequests.trim()
+      ? `\n• Special Notes: ${res.specialRequests.trim()}`
+      : '';
+
+    const initialMessage = `Dear ${res.guestName},
+
+Your table reservation at MiniKitchen Colombo has been CONFIRMED.
+
+Details:
+• Date: ${res.date}
+• Time: ${res.time}
+• Party: ${res.guestCount} ${res.guestCount === 1 ? 'Guest' : 'Guests'}
+• Booking Reference: #${res.id}${notesLine}
+
+Location & Contact:
+MiniKitchen Artisanal Dining Room
+142 Galle Road, Colombo 03, Sri Lanka
+Telephone: +94 11 234 5678
+
+We look forward to welcoming you for an exceptional seasonal dining experience.
+
+Warm regards,
+MiniKitchen Management`;
+
+    setCustomMessage(initialMessage);
+  };
+
+  const handleCopyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(customMessage);
+      setCopiedToast(true);
+      setTimeout(() => setCopiedToast(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy message:', err);
+    }
+  };
+
   // Verify Admin Session on Mount
   useEffect(() => {
     fetch('/api/auth/me')
@@ -93,6 +150,13 @@ export default function AdminDashboardPage() {
         setReservations((prev) =>
           prev.map((r) => (r.id === id ? { ...r, status } : r))
         );
+        // Automatically open the SMS/Email/WhatsApp dispatch preparation modal upon confirmation
+        if (status === 'Confirmed') {
+          const target = reservations.find((r) => r.id === id);
+          if (target) {
+            openDispatchModal({ ...target, status: 'Confirmed' });
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to update status:', err);
@@ -272,10 +336,10 @@ export default function AdminDashboardPage() {
     <div className="min-h-screen bg-[#121110] text-[#f1f1f1] font-body selection:bg-white selection:text-black">
       
       {/* Top Navigation Bar */}
-      <header className="border-b border-white/10 px-[7vw] py-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <header className="border-b border-white/10 px-4 sm:px-6 md:px-[7vw] py-4 sm:py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <div className="flex items-baseline gap-3">
-            <span className="font-disp text-2xl md:text-3xl text-[#f1f1f1] tracking-wide">
+          <div className="flex items-baseline gap-2.5 sm:gap-3">
+            <span className="font-disp text-2xl sm:text-3xl text-[#f1f1f1] tracking-wide">
               MiniKitchen
             </span>
             <span className="text-[10px] uppercase tracking-[0.2em] text-[#8a857e] font-light">
@@ -287,17 +351,17 @@ export default function AdminDashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-6 text-xs uppercase tracking-widest font-light">
+        <div className="flex items-center gap-4 sm:gap-6 text-xs uppercase tracking-widest font-light">
           <Link
             href="/"
             target="_blank"
-            className="text-[#bdb8b0] hover:text-[#f1f1f1] transition-colors"
+            className="text-[#bdb8b0] hover:text-[#f1f1f1] transition-colors py-1"
           >
             View Live Site ↗
           </Link>
           <button
             onClick={handleLogout}
-            className="text-[#8a857e] hover:text-white transition-colors cursor-pointer bg-transparent border-none p-0"
+            className="text-[#8a857e] hover:text-white transition-colors cursor-pointer bg-transparent border-none py-1"
           >
             Sign Out
           </button>
@@ -305,13 +369,13 @@ export default function AdminDashboardPage() {
       </header>
 
       {/* Main Container */}
-      <main className="px-[7vw] py-10 max-w-7xl mx-auto">
+      <main className="px-4 sm:px-6 md:px-[7vw] py-6 sm:py-10 max-w-7xl mx-auto">
         
-        {/* Navigation Tabs (Strictly Anti-Slop: Clean typographic underline tabs) */}
-        <div className="flex items-center gap-8 border-b border-white/10 pb-4 mb-10">
+        {/* Navigation Tabs (Touch-friendly horizontal scroll on mobile, elegant typographic underline) */}
+        <div className="flex items-center gap-4 sm:gap-8 border-b border-white/10 pb-3 sm:pb-4 mb-6 sm:mb-10 overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap -mx-4 px-4 sm:mx-0 sm:px-0">
           <button
             onClick={() => setActiveTab('reservations')}
-            className={`font-disp text-2xl sm:text-3xl tracking-tight transition-colors cursor-pointer pb-2 relative ${
+            className={`font-disp text-xl sm:text-2xl md:text-3xl tracking-tight transition-colors cursor-pointer pb-2 relative shrink-0 ${
               activeTab === 'reservations'
                 ? 'text-[#f1f1f1]'
                 : 'text-[#6b6760] hover:text-[#bdb8b0]'
@@ -319,46 +383,46 @@ export default function AdminDashboardPage() {
           >
             Table Reservations
             {pendingCount > 0 && (
-              <span className="ml-3 text-xs font-body font-light border border-white/20 px-2 py-0.5 text-[#d4cebe] align-middle">
+              <span className="ml-2 sm:ml-3 text-[11px] sm:text-xs font-body font-light border border-white/20 px-2 py-0.5 text-[#d4cebe] align-middle">
                 {pendingCount} Pending
               </span>
             )}
             {activeTab === 'reservations' && (
-              <span className="absolute bottom-[-17px] left-0 right-0 h-[2px] bg-[#f1f1f1]" />
+              <span className="absolute bottom-[-13px] sm:bottom-[-17px] left-0 right-0 h-[2px] bg-[#f1f1f1]" />
             )}
           </button>
 
           <button
             onClick={() => setActiveTab('menu')}
-            className={`font-disp text-2xl sm:text-3xl tracking-tight transition-colors cursor-pointer pb-2 relative ${
+            className={`font-disp text-xl sm:text-2xl md:text-3xl tracking-tight transition-colors cursor-pointer pb-2 relative shrink-0 ${
               activeTab === 'menu'
                 ? 'text-[#f1f1f1]'
                 : 'text-[#6b6760] hover:text-[#bdb8b0]'
             }`}
           >
             Seasonal Menu Controls
-            <span className="ml-3 text-xs font-body font-light text-[#8a857e] align-middle">
+            <span className="ml-2 sm:ml-3 text-[11px] sm:text-xs font-body font-light text-[#8a857e] align-middle">
               ({menuItems.length} Dishes)
             </span>
             {activeTab === 'menu' && (
-              <span className="absolute bottom-[-17px] left-0 right-0 h-[2px] bg-[#f1f1f1]" />
+              <span className="absolute bottom-[-13px] sm:bottom-[-17px] left-0 right-0 h-[2px] bg-[#f1f1f1]" />
             )}
           </button>
 
           <button
             onClick={() => setActiveTab('operations')}
-            className={`font-disp text-2xl sm:text-3xl tracking-tight transition-colors cursor-pointer pb-2 relative ${
+            className={`font-disp text-xl sm:text-2xl md:text-3xl tracking-tight transition-colors cursor-pointer pb-2 relative shrink-0 ${
               activeTab === 'operations'
                 ? 'text-[#f1f1f1]'
                 : 'text-[#6b6760] hover:text-[#bdb8b0]'
             }`}
           >
             Hours & Operations
-            <span className="ml-3 text-xs font-body font-light text-[#8a857e] align-middle">
-              (Live Schedule & Location)
+            <span className="ml-2 sm:ml-3 text-[11px] sm:text-xs font-body font-light text-[#8a857e] align-middle hidden sm:inline">
+              (Schedule & Location)
             </span>
             {activeTab === 'operations' && (
-              <span className="absolute bottom-[-17px] left-0 right-0 h-[2px] bg-[#f1f1f1]" />
+              <span className="absolute bottom-[-13px] sm:bottom-[-17px] left-0 right-0 h-[2px] bg-[#f1f1f1]" />
             )}
           </button>
         </div>
@@ -368,13 +432,13 @@ export default function AdminDashboardPage() {
         {/* ======================================================== */}
         {activeTab === 'reservations' && (
           <div>
-            {/* Quick Metrics Bar (No plastic card containers, clean architectural metric strip) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 py-6 border-y border-white/10 mb-8">
+            {/* Quick Metrics Bar (Responsive grid, clean architectural metric strip) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 py-4 sm:py-6 border-y border-white/10 mb-6 sm:mb-8">
               <div>
                 <span className="text-[10px] uppercase tracking-widest text-[#8a857e] block mb-1">
                   Pending Review
                 </span>
-                <span className="font-disp text-3xl sm:text-4xl text-[#f1f1f1]">
+                <span className="font-disp text-2xl sm:text-3xl md:text-4xl text-[#f1f1f1]">
                   {pendingCount}
                 </span>
               </div>
@@ -382,7 +446,7 @@ export default function AdminDashboardPage() {
                 <span className="text-[10px] uppercase tracking-widest text-[#8a857e] block mb-1">
                   Confirmed Tables
                 </span>
-                <span className="font-disp text-3xl sm:text-4xl text-[#f1f1f1]">
+                <span className="font-disp text-2xl sm:text-3xl md:text-4xl text-[#f1f1f1]">
                   {confirmedCount}
                 </span>
               </div>
@@ -390,7 +454,7 @@ export default function AdminDashboardPage() {
                 <span className="text-[10px] uppercase tracking-widest text-[#8a857e] block mb-1">
                   Cancelled / Declined
                 </span>
-                <span className="font-disp text-3xl sm:text-4xl text-[#8a857e]">
+                <span className="font-disp text-2xl sm:text-3xl md:text-4xl text-[#8a857e]">
                   {cancelledCount}
                 </span>
               </div>
@@ -398,20 +462,20 @@ export default function AdminDashboardPage() {
                 <span className="text-[10px] uppercase tracking-widest text-[#8a857e] block mb-1">
                   Total Bookings
                 </span>
-                <span className="font-disp text-3xl sm:text-4xl text-[#f1f1f1]">
+                <span className="font-disp text-2xl sm:text-3xl md:text-4xl text-[#f1f1f1]">
                   {reservations.length}
                 </span>
               </div>
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 {(['All', 'Pending', 'Confirmed', 'Cancelled'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setReservationFilter(tab)}
-                    className={`px-3.5 py-1.5 text-xs uppercase tracking-wider font-body transition-colors border cursor-pointer ${
+                    className={`px-3 py-1.5 text-xs uppercase tracking-wider font-body transition-colors border cursor-pointer ${
                       reservationFilter === tab
                         ? 'border-[#f1f1f1] bg-[#f1f1f1] text-[#121110]'
                         : 'border-white/10 bg-transparent text-[#8a857e] hover:border-white/30 hover:text-[#f1f1f1]'
@@ -429,7 +493,7 @@ export default function AdminDashboardPage() {
 
             {/* Reservations List */}
             {filteredReservations.length === 0 ? (
-              <div className="py-20 text-center border border-white/10">
+              <div className="py-16 sm:py-20 text-center border border-white/10">
                 <p className="text-xs uppercase tracking-widest text-[#8a857e]">
                   No {reservationFilter !== 'All' ? reservationFilter.toLowerCase() : ''} reservations found.
                 </p>
@@ -439,13 +503,13 @@ export default function AdminDashboardPage() {
                 {filteredReservations.map((res) => (
                   <div
                     key={res.id}
-                    className="border border-white/10 p-6 transition-colors hover:border-white/20 bg-[#161514]"
+                    className="border border-white/10 p-4 sm:p-6 transition-colors hover:border-white/20 bg-[#161514]"
                   >
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
                       
                       {/* Left: Guest & Schedule Details */}
                       <div className="space-y-2">
-                        <div className="flex flex-wrap items-baseline gap-3">
+                        <div className="flex flex-wrap items-baseline gap-2 sm:gap-3">
                           <h4 className="font-disp text-xl sm:text-2xl text-[#f1f1f1] m-0">
                             {res.guestName}
                           </h4>
@@ -458,7 +522,7 @@ export default function AdminDashboardPage() {
                             {res.source === 'ai_chatbot' ? 'AI Concierge (Remy)' : 'Website Form'}
                           </span>
 
-                          {/* Status Badge: Strictly NO Green or Red Pills */}
+                          {/* Status Badge */}
                           <span
                             className={`text-[10px] uppercase tracking-widest px-2.5 py-0.5 font-light border ${
                               res.status === 'Confirmed'
@@ -473,7 +537,7 @@ export default function AdminDashboardPage() {
                         </div>
 
                         {/* Booking Meta */}
-                        <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-[#bdb8b0] font-light">
+                        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-x-4 sm:gap-x-6 gap-y-1.5 text-xs text-[#bdb8b0] font-light">
                           <span>
                             Party: <strong className="text-[#f1f1f1] font-normal">{res.guestCount} {res.guestCount === 1 ? 'Guest' : 'Guests'}</strong>
                           </span>
@@ -484,13 +548,13 @@ export default function AdminDashboardPage() {
                             Time: <strong className="text-[#f1f1f1] font-normal">{res.time}</strong>
                           </span>
                           {res.phone && (
-                            <span>
+                            <span className="col-span-2 sm:col-auto">
                               Phone: <a href={`tel:${res.phone}`} className="text-[#f1f1f1] underline hover:text-white">{res.phone}</a>
                             </span>
                           )}
                           {res.email && (
-                            <span>
-                              Email: <a href={`mailto:${res.email}`} className="text-[#f1f1f1] underline hover:text-white">{res.email}</a>
+                            <span className="col-span-2 sm:col-auto">
+                              Email: <a href={`mailto:${res.email}`} className="text-[#f1f1f1] underline hover:text-white break-all">{res.email}</a>
                             </span>
                           )}
                         </div>
@@ -504,13 +568,24 @@ export default function AdminDashboardPage() {
                       </div>
 
                       {/* Right: Actions */}
-                      <div className="flex flex-wrap items-center gap-2 shrink-0">
-                        {res.status !== 'Confirmed' && (
+                      <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-white/5 lg:border-t-0 lg:pt-0 shrink-0 w-full lg:w-auto">
+                        {res.status !== 'Confirmed' ? (
                           <button
                             onClick={() => handleUpdateReservationStatus(res.id, 'Confirmed')}
-                            className="px-3.5 py-2 border border-white/30 hover:border-white bg-transparent hover:bg-white hover:text-black text-xs uppercase tracking-wider text-[#f1f1f1] transition-all cursor-pointer font-light"
+                            className="px-4 py-2 border border-[#f1f1f1] bg-[#f1f1f1] text-[#121110] hover:bg-white text-xs uppercase tracking-wider font-medium transition-all cursor-pointer"
                           >
                             Confirm Table
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => openDispatchModal(res)}
+                            className="px-3.5 py-2 border border-[#d4a359]/60 bg-[#d4a359]/10 hover:bg-[#d4a359]/25 text-xs uppercase tracking-wider text-[#f1f1f1] transition-all cursor-pointer font-light flex items-center gap-1.5"
+                            title="Open SMS, WhatsApp & Email notification preparation modal"
+                          >
+                            <svg className="w-3.5 h-3.5 text-[#d4a359]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <span>Prep SMS / Email</span>
                           </button>
                         )}
 
@@ -534,7 +609,7 @@ export default function AdminDashboardPage() {
 
                         <button
                           onClick={() => handleDeleteReservation(res.id)}
-                          className="px-3 py-2 text-xs text-[#6b6760] hover:text-[#8a857e] transition-colors cursor-pointer"
+                          className="px-3 py-2 text-xs text-[#6b6760] hover:text-[#8a857e] transition-colors cursor-pointer ml-auto lg:ml-0"
                           title="Delete record"
                         >
                           ✕
@@ -587,16 +662,16 @@ export default function AdminDashboardPage() {
               {filteredMenuItems.map((dish) => (
                 <div
                   key={dish.id}
-                  className={`border p-5 sm:p-6 transition-all ${
+                  className={`border p-4 sm:p-6 transition-all ${
                     dish.available
                       ? 'border-white/10 bg-[#161514]'
                       : 'border-white/5 bg-[#121110] opacity-75'
                   }`}
                 >
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
                     
                     {/* Left: Thumbnail & Dish Info */}
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-3.5 sm:gap-4">
                       {dish.imageUrl ? (
                         <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 border border-white/10 overflow-hidden bg-[#1f1e1c]">
                           <img
@@ -612,7 +687,7 @@ export default function AdminDashboardPage() {
                       )}
 
                       <div className="space-y-1">
-                        <div className="flex flex-wrap items-baseline gap-3">
+                        <div className="flex flex-wrap items-baseline gap-2 sm:gap-3">
                           <h4 className="font-disp text-xl sm:text-2xl text-[#f1f1f1] m-0">
                             {dish.name}
                           </h4>
@@ -638,8 +713,8 @@ export default function AdminDashboardPage() {
                     </div>
 
                     {/* Right: Price & 1-Click Availability Toggle Switch */}
-                    <div className="flex items-center justify-between md:justify-end gap-6 border-t md:border-t-0 border-white/10 pt-4 md:pt-0">
-                      <div className="text-right">
+                    <div className="flex flex-wrap items-center justify-between sm:justify-end gap-3 sm:gap-6 border-t md:border-t-0 border-white/10 pt-3 md:pt-0">
+                      <div className="text-left sm:text-right">
                         <span className="font-disp text-lg sm:text-xl text-[#f1f1f1] tracking-wide block">
                           LKR {dish.price.toLocaleString()}
                         </span>
@@ -652,7 +727,7 @@ export default function AdminDashboardPage() {
                       <button
                         type="button"
                         onClick={() => handleToggleMenuAvailability(dish.id, dish.available)}
-                        className={`px-4 py-2 text-xs uppercase tracking-wider font-body border cursor-pointer transition-all duration-300 ${
+                        className={`px-3.5 sm:px-4 py-2 text-xs uppercase tracking-wider font-body border cursor-pointer transition-all duration-300 ${
                           dish.available
                             ? 'border-white/30 bg-transparent text-[#f1f1f1] hover:border-white hover:bg-white/10'
                             : 'border-white/10 bg-[#1c1b1a] text-[#8a857e] hover:text-[#f1f1f1]'
@@ -665,7 +740,7 @@ export default function AdminDashboardPage() {
                       {/* Edit Dish Button */}
                       <button
                         onClick={() => handleOpenEditModal(dish)}
-                        className="text-xs uppercase tracking-wider text-[#8a857e] hover:text-[#f1f1f1] transition-colors cursor-pointer"
+                        className="text-xs uppercase tracking-wider text-[#8a857e] hover:text-[#f1f1f1] transition-colors cursor-pointer py-1"
                       >
                         Edit
                       </button>
@@ -673,7 +748,7 @@ export default function AdminDashboardPage() {
                       {/* Delete Dish Button */}
                       <button
                         onClick={() => handleDeleteMenuItem(dish.id, dish.name)}
-                        className="text-xs text-[#6b6760] hover:text-[#8a857e] transition-colors cursor-pointer"
+                        className="text-xs text-[#6b6760] hover:text-[#8a857e] transition-colors cursor-pointer py-1"
                         title="Delete dish"
                       >
                         ✕
@@ -693,17 +768,17 @@ export default function AdminDashboardPage() {
         {activeTab === 'operations' && (
           <div>
             {infoSaveSuccess && (
-              <div className="mb-6 p-4 border border-white/30 bg-white/5 text-[#f1f1f1] flex items-center justify-between text-xs tracking-wider uppercase font-body">
+              <div className="mb-6 p-4 border border-white/30 bg-white/5 text-[#f1f1f1] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs tracking-wider uppercase font-body">
                 <span>✓ Operations, weekly hours, and contact information updated live.</span>
                 <span className="text-[#8a857e]">Synced with site & AI concierge</span>
               </div>
             )}
 
-            <form onSubmit={handleSaveOperations} className="space-y-12">
+            <form onSubmit={handleSaveOperations} className="space-y-8 sm:space-y-12">
               
               {/* Section 1: Weekly Dining Schedule & Open/Closed Days */}
-              <div className="border border-white/10 p-6 sm:p-8 bg-[#161514]">
-                <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 border-b border-white/10 pb-4 mb-6">
+              <div className="border border-white/10 p-4 sm:p-8 bg-[#161514]">
+                <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 sm:gap-4 border-b border-white/10 pb-4 mb-6">
                   <div>
                     <span className="text-[10px] uppercase tracking-widest text-[#8a857e] block mb-1">
                       Service Timetable
@@ -721,13 +796,13 @@ export default function AdminDashboardPage() {
                   {restaurantInfo?.hours?.map((schedule, idx) => (
                     <div
                       key={schedule.day}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border border-white/5 bg-[#1a1918] hover:border-white/15 transition-colors"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 border border-white/5 bg-[#1a1918] hover:border-white/15 transition-colors"
                     >
-                      <div className="w-36 font-disp text-lg text-[#f1f1f1] tracking-wide">
+                      <div className="w-auto sm:w-36 font-disp text-base sm:text-lg text-[#f1f1f1] tracking-wide">
                         {schedule.day}
                       </div>
 
-                      <div className="flex items-center gap-4 flex-wrap">
+                      <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
                         {/* Day Status Toggle */}
                         <button
                           type="button"
@@ -748,7 +823,7 @@ export default function AdminDashboardPage() {
                               type="text"
                               value={schedule.open}
                               onChange={(e) => handleHourChange(idx, 'open', e.target.value)}
-                              className="w-20 bg-[#121110] border border-white/20 px-2 py-1 text-xs text-[#f1f1f1] text-center focus:border-white/60 focus:outline-none"
+                              className="w-18 sm:w-20 bg-[#121110] border border-white/20 px-2 py-1 text-xs text-[#f1f1f1] text-center focus:border-white/60 focus:outline-none"
                               placeholder="17:00"
                             />
                             <span className="text-[#8a857e]">—</span>
@@ -757,7 +832,7 @@ export default function AdminDashboardPage() {
                               type="text"
                               value={schedule.close}
                               onChange={(e) => handleHourChange(idx, 'close', e.target.value)}
-                              className="w-20 bg-[#121110] border border-white/20 px-2 py-1 text-xs text-[#f1f1f1] text-center focus:border-white/60 focus:outline-none"
+                              className="w-18 sm:w-20 bg-[#121110] border border-white/20 px-2 py-1 text-xs text-[#f1f1f1] text-center focus:border-white/60 focus:outline-none"
                               placeholder="22:30"
                             />
                           </div>
@@ -773,7 +848,7 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Section 2: Restaurant Identity & Contact Information */}
-              <div className="border border-white/10 p-6 sm:p-8 bg-[#161514]">
+              <div className="border border-white/10 p-4 sm:p-8 bg-[#161514]">
                 <div className="border-b border-white/10 pb-4 mb-6">
                   <span className="text-[10px] uppercase tracking-widest text-[#8a857e] block mb-1">
                     Dining Room Details
@@ -783,7 +858,7 @@ export default function AdminDashboardPage() {
                   </h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
                   <div>
                     <label className="text-[10px] uppercase tracking-widest text-[#8a857e] block mb-2 font-light">
                       Dining Room Street Address
@@ -794,7 +869,7 @@ export default function AdminDashboardPage() {
                       onChange={(e) =>
                         setRestaurantInfo(restaurantInfo ? { ...restaurantInfo, address: e.target.value } : null)
                       }
-                      className="w-full bg-[#1a1918] border border-white/15 px-4 py-2.5 text-xs text-[#f1f1f1] focus:border-white/50 focus:outline-none transition-colors"
+                      className="w-full bg-[#1a1918] border border-white/15 px-3.5 sm:px-4 py-2.5 text-xs text-[#f1f1f1] focus:border-white/50 focus:outline-none transition-colors"
                       placeholder="142 Galle Road, Kollupitiya"
                     />
                   </div>
@@ -809,7 +884,7 @@ export default function AdminDashboardPage() {
                       onChange={(e) =>
                         setRestaurantInfo(restaurantInfo ? { ...restaurantInfo, city: e.target.value } : null)
                       }
-                      className="w-full bg-[#1a1918] border border-white/15 px-4 py-2.5 text-xs text-[#f1f1f1] focus:border-white/50 focus:outline-none transition-colors"
+                      className="w-full bg-[#1a1918] border border-white/15 px-3.5 sm:px-4 py-2.5 text-xs text-[#f1f1f1] focus:border-white/50 focus:outline-none transition-colors"
                       placeholder="Colombo 00300, Sri Lanka"
                     />
                   </div>
@@ -824,7 +899,7 @@ export default function AdminDashboardPage() {
                       onChange={(e) =>
                         setRestaurantInfo(restaurantInfo ? { ...restaurantInfo, phone: e.target.value } : null)
                       }
-                      className="w-full bg-[#1a1918] border border-white/15 px-4 py-2.5 text-xs text-[#f1f1f1] focus:border-white/50 focus:outline-none transition-colors"
+                      className="w-full bg-[#1a1918] border border-white/15 px-3.5 sm:px-4 py-2.5 text-xs text-[#f1f1f1] focus:border-white/50 focus:outline-none transition-colors"
                       placeholder="+94 11 234 5678"
                     />
                   </div>
@@ -839,7 +914,7 @@ export default function AdminDashboardPage() {
                       onChange={(e) =>
                         setRestaurantInfo(restaurantInfo ? { ...restaurantInfo, email: e.target.value } : null)
                       }
-                      className="w-full bg-[#1a1918] border border-white/15 px-4 py-2.5 text-xs text-[#f1f1f1] focus:border-white/50 focus:outline-none transition-colors"
+                      className="w-full bg-[#1a1918] border border-white/15 px-3.5 sm:px-4 py-2.5 text-xs text-[#f1f1f1] focus:border-white/50 focus:outline-none transition-colors"
                       placeholder="reservations@minikitchen.lk"
                     />
                   </div>
@@ -854,7 +929,7 @@ export default function AdminDashboardPage() {
                       onChange={(e) =>
                         setRestaurantInfo(restaurantInfo ? { ...restaurantInfo, tagline: e.target.value } : null)
                       }
-                      className="w-full bg-[#1a1918] border border-white/15 px-4 py-2.5 text-xs text-[#f1f1f1] focus:border-white/50 focus:outline-none transition-colors"
+                      className="w-full bg-[#1a1918] border border-white/15 px-3.5 sm:px-4 py-2.5 text-xs text-[#f1f1f1] focus:border-white/50 focus:outline-none transition-colors"
                       placeholder="Artisanal Seasonal Dining & Handcrafted Moments"
                     />
                   </div>
@@ -862,14 +937,14 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Action Bar */}
-              <div className="flex items-center justify-between border-t border-white/10 pt-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-white/10 pt-6">
                 <span className="text-xs text-[#8a857e] font-light">
                   Changes take effect immediately on public website, live booking, and AI Concierge.
                 </span>
                 <button
                   type="submit"
                   disabled={infoSaving}
-                  className="px-8 py-3.5 border border-[#f1f1f1] bg-[#f1f1f1] text-[#121110] hover:bg-transparent hover:text-[#f1f1f1] text-xs uppercase tracking-widest font-normal transition-all duration-300 cursor-pointer disabled:opacity-40"
+                  className="w-full sm:w-auto px-8 py-3.5 border border-[#f1f1f1] bg-[#f1f1f1] text-[#121110] hover:bg-transparent hover:text-[#f1f1f1] text-xs uppercase tracking-widest font-normal transition-all duration-300 cursor-pointer disabled:opacity-40 text-center"
                 >
                   {infoSaving ? 'Saving Operations...' : 'Save & Publish Operations'}
                 </button>
@@ -885,15 +960,15 @@ export default function AdminDashboardPage() {
       {/* MODAL: ADD / EDIT DISH (Anti-Slop: clean architectural modal) */}
       {/* ======================================================== */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#171615] border border-white/20 p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-[#171615] border border-white/20 p-5 sm:p-8 max-w-lg w-full max-h-[92vh] overflow-y-auto my-auto shadow-2xl">
             <div className="flex items-baseline justify-between border-b border-white/10 pb-4 mb-6">
               <h3 className="font-disp text-2xl text-[#f1f1f1] m-0">
                 {editingDish ? 'Edit Seasonal Dish' : 'Add New Seasonal Dish'}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-sm text-[#8a857e] hover:text-white cursor-pointer"
+                className="text-sm text-[#8a857e] hover:text-white cursor-pointer px-2 py-1"
               >
                 ✕
               </button>
@@ -913,7 +988,7 @@ export default function AdminDashboardPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs uppercase tracking-[0.2em] text-[#bdb8b0] font-light mb-2">
                     Category
@@ -983,7 +1058,7 @@ export default function AdminDashboardPage() {
                 </label>
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-4 border-t border-white/10">
+              <div className="pt-4 flex items-center justify-end gap-3 sm:gap-4 border-t border-white/10">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
@@ -999,6 +1074,153 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* MODAL: DISPATCH CONFIRMATION (SMS / EMAIL / WHATSAPP) */}
+      {/* ======================================================== */}
+      {dispatchReservation && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-[#171615] border border-white/20 p-5 sm:p-8 max-w-xl w-full my-auto shadow-2xl relative">
+            
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-white/10 pb-4 mb-5">
+              <div>
+                <span className="text-[10px] uppercase tracking-[0.25em] text-[#d4a359] block mb-1">
+                  Automated Notification Preparation
+                </span>
+                <h3 className="font-disp text-2xl sm:text-3xl text-[#f1f1f1] m-0">
+                  Confirm Table #{dispatchReservation.id}
+                </h3>
+              </div>
+              <button
+                onClick={() => setDispatchReservation(null)}
+                className="text-lg text-[#8a857e] hover:text-white cursor-pointer px-2 py-1"
+                title="Close preparation modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Guest Summary Card */}
+            <div className="bg-[#11100f] border border-white/10 p-3.5 sm:p-4 mb-5 text-xs text-[#bdb8b0] grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-[#8a857e] block">Guest</span>
+                <span className="text-[#f1f1f1] font-medium text-sm">{dispatchReservation.guestName}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-[#8a857e] block">Party</span>
+                <span className="text-[#f1f1f1] font-medium">{dispatchReservation.guestCount} {dispatchReservation.guestCount === 1 ? 'Guest' : 'Guests'}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider text-[#8a857e] block">Schedule</span>
+                <span className="text-[#f1f1f1] font-medium">{dispatchReservation.date} @ {dispatchReservation.time}</span>
+              </div>
+              <div className="col-span-2 sm:col-span-3 pt-2 border-t border-white/5 flex flex-wrap gap-x-4 gap-y-1">
+                {dispatchReservation.phone && (
+                  <span>Tel: <strong className="text-[#f1f1f1] font-mono">{dispatchReservation.phone}</strong></span>
+                )}
+                {dispatchReservation.email && (
+                  <span>Email: <strong className="text-[#f1f1f1] break-all">{dispatchReservation.email}</strong></span>
+                )}
+              </div>
+            </div>
+
+            {/* 1-Click Dispatch Channels */}
+            <div className="mb-5">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#8a857e] block mb-2 font-light">
+                Direct Dispatch Channels (1-Click)
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                
+                {/* Channel 1: WhatsApp */}
+                {dispatchReservation.phone ? (
+                  <a
+                    href={`https://wa.me/${getCleanPhoneForWhatsApp(dispatchReservation.phone)}?text=${encodeURIComponent(customMessage)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 px-3 py-2.5 border border-[#25D366]/40 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#f1f1f1] text-xs uppercase tracking-wider transition-colors text-center"
+                  >
+                    <span>💬</span>
+                    <span>WhatsApp</span>
+                  </a>
+                ) : (
+                  <span className="flex items-center justify-center px-3 py-2.5 border border-white/5 text-[#6b6760] text-xs uppercase tracking-wider text-center">
+                    No Phone
+                  </span>
+                )}
+
+                {/* Channel 2: Native SMS */}
+                {dispatchReservation.phone ? (
+                  <a
+                    href={`sms:${dispatchReservation.phone}?body=${encodeURIComponent(customMessage)}`}
+                    className="flex items-center justify-center gap-2 px-3 py-2.5 border border-white/20 bg-white/5 hover:bg-white/10 text-[#f1f1f1] text-xs uppercase tracking-wider transition-colors text-center"
+                  >
+                    <span>📱</span>
+                    <span>Send SMS</span>
+                  </a>
+                ) : (
+                  <span className="flex items-center justify-center px-3 py-2.5 border border-white/5 text-[#6b6760] text-xs uppercase tracking-wider text-center">
+                    No Phone
+                  </span>
+                )}
+
+                {/* Channel 3: Email */}
+                {dispatchReservation.email ? (
+                  <a
+                    href={`mailto:${dispatchReservation.email}?subject=${encodeURIComponent(`MiniKitchen Table Confirmation - Ref #${dispatchReservation.id}`)}&body=${encodeURIComponent(customMessage)}`}
+                    className="flex items-center justify-center gap-2 px-3 py-2.5 border border-white/20 bg-white/5 hover:bg-white/10 text-[#f1f1f1] text-xs uppercase tracking-wider transition-colors text-center"
+                  >
+                    <span>✉️</span>
+                    <span>Send Email</span>
+                  </a>
+                ) : (
+                  <span className="flex items-center justify-center px-3 py-2.5 border border-white/5 text-[#6b6760] text-xs uppercase tracking-wider text-center">
+                    No Email
+                  </span>
+                )}
+
+              </div>
+            </div>
+
+            {/* Editable Message Box */}
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-[10px] uppercase tracking-[0.2em] text-[#8a857e] font-light">
+                  Message Draft (Editable — updates links above live)
+                </label>
+                <button
+                  type="button"
+                  onClick={handleCopyMessage}
+                  className="text-[11px] uppercase tracking-wider text-[#d4cebe] hover:text-white transition-colors cursor-pointer flex items-center gap-1 border border-white/15 px-2.5 py-1"
+                >
+                  {copiedToast ? '✓ Copied to Clipboard!' : '📋 Copy Text'}
+                </button>
+              </div>
+
+              <textarea
+                rows={7}
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+                className="w-full bg-[#11100f] border border-white/20 p-3 sm:p-4 text-xs font-mono text-[#f1f1f1] leading-relaxed resize-y focus:border-white/50 focus:outline-none"
+              />
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-white/10">
+              <p className="text-[11px] text-[#8a857e] m-0 font-light text-center sm:text-left">
+                Clicking WhatsApp, SMS, or Email opens your device's native app ready with this message.
+              </p>
+              <button
+                onClick={() => setDispatchReservation(null)}
+                className="w-full sm:w-auto px-6 py-2.5 border border-[#f1f1f1] bg-[#f1f1f1] text-[#121110] text-xs uppercase tracking-widest font-normal hover:bg-transparent hover:text-white transition-all cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+
           </div>
         </div>
       )}
