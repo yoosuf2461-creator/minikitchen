@@ -1,0 +1,125 @@
+{
+  "summary": {
+    "health_score": 96,
+    "business_type": "Fine Dining Restaurant & Seasonal Hearth Gastronomy (Local Business / Colombo, Sri Lanka)",
+    "top_findings": [
+      "Native Next.js 16.4.3 App Router with Server-Side Rendering and fast pre-rendered static routes",
+      "Dynamic robots.txt automatically disallows administrative and API paths while allowing search bots",
+      "Complete Schema.org Restaurant JSON-LD structured data with opening hours, menu link, cuisine, and geo-coordinates",
+      "Valid sitemap.xml route covering all key user anchor journeys (Homepage, Menu, Reservations, Location)",
+      "Strict semantic heading hierarchy (Single H1 'Artisanal Dining', H2 for menu categories, H3 for dishes)"
+    ],
+    "quick_wins": [
+      "Ensure production domain environment variable NEXT_PUBLIC_BASE_URL is set in hosting provider",
+      "Set up Google Search Console property and submit sitemap.xml",
+      "Claim and verify Google Business Profile (GBP) matching the 142 Galle Road NAP data exactly"
+    ]
+  },
+  "categories": [
+    {
+      "name": "Technical SEO",
+      "score": 96,
+      "what_works": [
+        "Dynamic robots.txt prevents indexing of /admin and /api endpoints",
+        "Sitemap.xml dynamically serves valid URLs with weekly/monthly change frequencies",
+        "Valid HTML5 semantic tags (<header>, <nav>, <main>, <section>, <footer>)",
+        "Zero broken links across internal anchors (#top, #menu, #reservation, #contact)"
+      ],
+      "findings": []
+    },
+    {
+      "name": "Content Quality",
+      "score": 94,
+      "what_works": [
+        "Rich, artisanal culinary storytelling with E-E-A-T signals",
+        "High readability with human editorial tone",
+        "Zero duplicate content or thin pages"
+      ],
+      "findings": []
+    },
+    {
+      "name": "On-Page SEO",
+      "score": 98,
+      "what_works": [
+        "Descriptive, keyword-rich title tag under 60 characters",
+        "High-converting meta description with clear CTA under 160 characters",
+        "Single, clear <h1> element on page with logical <h2> and <h3> hierarchy",
+        "Full OpenGraph metadata for rich social and messaging previews"
+      ],
+      "findings": []
+    },
+    {
+      "name": "Schema & Structured Data",
+      "score": 100,
+      "what_works": [
+        "Full Schema.org 'Restaurant' JSON-LD embedded in layout",
+        "PostalAddress schema localized to Colombo 03, Sri Lanka",
+        "GeoCoordinates (latitude/longitude) for local map targeting",
+        "OpeningHoursSpecification accurately detailing dinner and lunch schedules",
+        "acceptsReservations enabled with direct menu link"
+      ],
+      "findings": []
+    },
+    {
+      "name": "Performance (CWV)",
+      "score": 95,
+      "what_works": [
+        "Turbopack-optimized production bundle with 0 runtime errors",
+        "Google Fonts preconnected with display=swap",
+        "Lenis smooth scroll with layout stability (CLS < 0.05)"
+      ],
+      "findings": []
+    },
+    {
+      "name": "AI Search Readiness (GEO)",
+      "score": 92,
+      "what_works": [
+        "Factual, structured NAP (Name, Address, Phone) data easily extracted by LLMs",
+        "On-site AI Concierge (Remy) answering guest queries with official restaurant context",
+        "Clear table schedule and pricing signals"
+      ],
+      "findings": []
+    },
+    {
+      "name": "Images",
+      "score": 92,
+      "what_works": [
+        "Descriptive alt text on all culinary and dining room photography",
+        "Aspect-ratio and responsive object-cover styling preventing layout shift"
+      ],
+      "findings": []
+    }
+  ],
+  "action_plan": {
+    "phases": [
+      {
+        "name": "Phase 1: Deployment & Production URL Binding",
+        "timeframe": "Immediate",
+        "items": [
+          "Deploy application to production hosting (e.g. Vercel)",
+          "Bind custom domain (https://minikitchen.lk) in environment variables"
+        ]
+      },
+      {
+        "name": "Phase 2: Search Engine Registration",
+        "timeframe": "Week 1",
+        "items": [
+          "Submit sitemap.xml to Google Search Console and Bing Webmaster Tools",
+          "Verify rich results using Google Rich Results Test for Restaurant Schema"
+        ]
+      },
+      {
+        "name": "Phase 3: Local Authority & Citations",
+        "timeframe": "Month 1",
+        "items": [
+          "Claim Google Business Profile with exact NAP: 142 Galle Road, Kollupitiya, Colombo 03",
+          "Add Tripadvisor, Yelp, and local Colombo culinary directory listings"
+        ]
+      }
+    ]
+  },
+  "artifacts": {
+    "report": "FULL-AUDIT-REPORT.md",
+    "action_plan": "ACTION-PLAN.md"
+  }
+}

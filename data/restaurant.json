@@ -1,0 +1,328 @@
+{
+  "restaurantInfo": {
+    "name": "MiniKitchen",
+    "tagline": "Artisanal Seasonal Dining & Handcrafted Moments",
+    "description": "MiniKitchen celebrates intimate dining with bold, locally sourced flavors. From coastal seafood to open-flame braised cuts, our kitchen crafts honest dishes that bring people together.",
+    "address": "142 Galle Road, Kollupitiya",
+    "city": "Colombo 03, Sri Lanka",
+    "phone": "+94 11 234 5678",
+    "email": "concierge@minikitchen.lk",
+    "currency": "LKR",
+    "hours": [
+      {
+        "day": "Monday",
+        "open": "Closed",
+        "close": "Kitchen Rest",
+        "isClosed": true
+      },
+      {
+        "day": "Tuesday",
+        "open": "18:00",
+        "close": "22:30"
+      },
+      {
+        "day": "Wednesday",
+        "open": "18:00",
+        "close": "22:30"
+      },
+      {
+        "day": "Thursday",
+        "open": "18:00",
+        "close": "22:30"
+      },
+      {
+        "day": "Friday",
+        "open": "12:00 – 15:30",
+        "close": "18:00 – 23:30"
+      },
+      {
+        "day": "Saturday",
+        "open": "12:00 – 15:30",
+        "close": "18:00 – 23:30"
+      },
+      {
+        "day": "Sunday",
+        "open": "12:00 – 15:30",
+        "close": "18:00 – 22:00"
+      }
+    ]
+  },
+  "menu": [
+    {
+      "id": "dish-1",
+      "name": "Truffle Mushroom Bruschetta",
+      "description": "Grilled artisan sourdough, wild forest mushrooms, fresh thyme, white truffle oil, shaved 24-month pecorino.",
+      "price": 3200,
+      "category": "starters",
+      "available": true,
+      "dietary": [
+        "Vegetarian"
+      ],
+      "badge": "Popular",
+      "imageEmoji": "🍄",
+      "imageUrl": "/images/menu/dish_4.jpg"
+    },
+    {
+      "id": "dish-2",
+      "name": "Crispy Calamari Fritti",
+      "description": "Tender line-caught calamari, charred Meyer lemon, pickled fresno chili, smoked paprika garlic aioli.",
+      "price": 3800,
+      "category": "starters",
+      "available": true,
+      "dietary": [
+        "Chef Special"
+      ],
+      "badge": "Chef's Pick",
+      "imageEmoji": "🦑",
+      "imageUrl": "/images/menu/dish_6.jpg"
+    },
+    {
+      "id": "dish-3",
+      "name": "Heirloom Burrata & Grilled Peach",
+      "description": "Creamy Puglia burrata, caramelized ripe peaches, hand-torn sweet basil, 12-year aged Modena balsamic reduction.",
+      "price": 3600,
+      "category": "starters",
+      "available": true,
+      "dietary": [
+        "Vegetarian",
+        "Gluten-Free"
+      ],
+      "imageEmoji": "🍑",
+      "imageUrl": "/images/menu/dish_5.jpg"
+    },
+    {
+      "id": "dish-4",
+      "name": "MiniKitchen Braised Short Rib",
+      "description": "12-hour slow-braised prime beef, creamy mascarpone polenta, glazed heirloom baby carrots, rich natural bone jus.",
+      "price": 8200,
+      "category": "mains",
+      "available": true,
+      "dietary": [
+        "Chef Special",
+        "Gluten-Free"
+      ],
+      "badge": "Signature",
+      "imageEmoji": "🥩",
+      "imageUrl": "/images/menu/dish_3.jpg"
+    },
+    {
+      "id": "dish-5",
+      "name": "Pan-Seared Chilean Sea Bass",
+      "description": "Wild-caught sea bass, saffron cauliflower velvet puree, crispy baby capers, citrus dill emulsion.",
+      "price": 8900,
+      "category": "mains",
+      "available": true,
+      "dietary": [
+        "Gluten-Free"
+      ],
+      "imageEmoji": "🐟",
+      "imageUrl": "/images/menu/dish_1.jpg"
+    },
+    {
+      "id": "dish-6",
+      "name": "Wild Mushroom Pappardelle",
+      "description": "Handcrafted egg ribbons, porcini mushroom cream, deglazed pinot grigio, toasted Italian pine nuts, fresh chervil.",
+      "price": 6400,
+      "category": "mains",
+      "available": true,
+      "dietary": [
+        "Vegetarian"
+      ],
+      "imageEmoji": "🍝",
+      "imageUrl": "/images/menu/dish_10.jpg"
+    },
+    {
+      "id": "dish-7",
+      "name": "Roasted Butternut Squash Risotto",
+      "description": "Acquerello carnaroli rice, brown sage butter, crispy Tuscan kale, spiced pepitas, aged cashew parmesan.",
+      "price": 5800,
+      "category": "mains",
+      "available": true,
+      "dietary": [
+        "Vegan",
+        "Gluten-Free"
+      ],
+      "imageEmoji": "🥣",
+      "imageUrl": "/images/menu/dish_2.jpg"
+    },
+    {
+      "id": "dish-8",
+      "name": "Charred Prime Wagyu Burger",
+      "description": "Fresh ground wagyu patty, toasted brioche bun, house bacon onion jam, smoked cave cheddar, shoestring truffle fries.",
+      "price": 6200,
+      "category": "mains",
+      "available": false,
+      "dietary": [],
+      "badge": "Sold Out Today",
+      "imageEmoji": "🍔",
+      "imageUrl": "/images/menu/dish_11.jpg"
+    },
+    {
+      "id": "dish-9",
+      "name": "Valrhona Chocolate Lava Cake",
+      "description": "Warm molten center with 70% single-origin Valrhona dark chocolate, Madagascar bourbon vanilla bean gelato, raspberry dust.",
+      "price": 2800,
+      "category": "desserts",
+      "available": true,
+      "dietary": [
+        "Vegetarian"
+      ],
+      "badge": "Guest Favorite",
+      "imageEmoji": "🍫",
+      "imageUrl": "/images/menu/dish_9.jpg"
+    },
+    {
+      "id": "dish-10",
+      "name": "Meyer Lemon Verbena Tart",
+      "description": "Crisp buttery sablé shell, tart lemon verbena curd, torched Swiss meringue kisses, candied lemon peel.",
+      "price": 2600,
+      "category": "desserts",
+      "available": true,
+      "dietary": [
+        "Vegetarian"
+      ],
+      "imageEmoji": "🍋",
+      "imageUrl": "/images/menu/dish_7.jpg"
+    },
+    {
+      "id": "dish-11",
+      "name": "Smoked Rosemary Old Fashioned",
+      "description": "Woodford Reserve bourbon, raw demerara syrup, Angostura & orange bitters, torched rosemary sprig smoke.",
+      "price": 3400,
+      "category": "drinks",
+      "available": true,
+      "dietary": [],
+      "badge": "Craft Cocktail",
+      "imageEmoji": "🥃",
+      "imageUrl": "/images/menu/dish_8.jpg"
+    },
+    {
+      "id": "dish-12",
+      "name": "Yuzu Cucumber Sparkler (Zero-Proof)",
+      "description": "Fresh Japanese yuzu juice, bruised cucumber ribbon, sparkling botanical water, elderflower cordial, garden mint.",
+      "price": 2200,
+      "category": "drinks",
+      "available": true,
+      "dietary": [
+        "Vegan",
+        "Gluten-Free"
+      ],
+      "imageEmoji": "🍹",
+      "imageUrl": "/images/menu/dish_0.jpg"
+    },
+    {
+      "name": "Wild Sea Bass Carpaccio",
+      "description": "Thinly sliced Indian Ocean sea bass, passion fruit ponzu, pickled shallots, sea salt.",
+      "price": 3800,
+      "category": "starters",
+      "available": false,
+      "dietary": [],
+      "imageEmoji": "🍽️",
+      "id": "dish-1792862367207"
+    }
+  ],
+  "reservations": [
+    {
+      "guestName": "Tharindu Jayawardena",
+      "phone": "",
+      "email": "concierge@minikitchen.lk",
+      "date": "2026-10-24",
+      "time": "20:00",
+      "guestCount": 3,
+      "specialRequests": "Booked via MiniKitchen AI Concierge chat",
+      "status": "Confirmed",
+      "source": "ai_chatbot",
+      "id": "res-1792863907875-ezc8",
+      "createdAt": "2026-10-24T17:45:07.875Z"
+    },
+    {
+      "guestName": "Kaveen Fernando",
+      "phone": "",
+      "email": "concierge@minikitchen.lk",
+      "date": "2026-10-24",
+      "time": "19:30",
+      "guestCount": 2,
+      "specialRequests": "Booked via MiniKitchen AI Concierge chat",
+      "status": "Pending",
+      "source": "ai_chatbot",
+      "id": "res-1792863435338-ez07",
+      "createdAt": "2026-10-24T17:37:15.338Z"
+    },
+    {
+      "guestName": "Dilshan Silva",
+      "phone": "+94 71 234 5678",
+      "email": "dilshan@cuisine.lk",
+      "date": "2026-10-24",
+      "time": "19:30",
+      "guestCount": 8,
+      "status": "Confirmed",
+      "source": "website_form",
+      "id": "res-1792860859916-cfjk",
+      "createdAt": "2026-10-24T16:54:19.916Z"
+    },
+    {
+      "guestName": "Dilshan Silva",
+      "phone": "+94 71 234 5678",
+      "email": "dilshan@cuisine.lk",
+      "date": "2026-10-24",
+      "time": "20:00",
+      "guestCount": 4,
+      "specialRequests": "Anniversary celebration, quiet corner",
+      "status": "Confirmed",
+      "source": "website_form",
+      "id": "res-1792860704856-y61q",
+      "createdAt": "2026-10-24T16:51:44.856Z"
+    },
+    {
+      "guestName": "Sahan Perera",
+      "phone": "+94 77 987 6543",
+      "email": "sahan@example.com",
+      "date": "2026-10-24",
+      "time": "19:00",
+      "guestCount": 2,
+      "status": "Pending",
+      "source": "website_form",
+      "id": "res-1792860436239-tu9l",
+      "createdAt": "2026-10-24T16:47:16.239Z"
+    },
+    {
+      "guestName": "Sahan Perera",
+      "phone": "+94 77 987 6543",
+      "email": "sahan@example.com",
+      "date": "2026-10-24",
+      "time": "19:00",
+      "guestCount": 4,
+      "specialRequests": "Window seat for wedding anniversary",
+      "status": "Pending",
+      "source": "website_form",
+      "id": "res-1792860143845-qenm",
+      "createdAt": "2026-10-24T16:42:23.845Z"
+    },
+    {
+      "id": "res-demo-1",
+      "guestName": "Eleanor Vance",
+      "phone": "(415) 890-1234",
+      "email": "eleanor.vance@example.com",
+      "date": "2026-10-25",
+      "time": "19:30",
+      "guestCount": 2,
+      "specialRequests": "Window booth preferred, celebrating anniversary.",
+      "status": "Pending",
+      "createdAt": "2026-10-24T14:19:49.622Z",
+      "source": "website_form"
+    },
+    {
+      "id": "res-demo-2",
+      "guestName": "Marcus Sterling",
+      "phone": "(415) 742-9901",
+      "email": "m.sterling@example.com",
+      "date": "2026-10-25",
+      "time": "20:00",
+      "guestCount": 4,
+      "specialRequests": "One guest has severe peanut allergy.",
+      "status": "Confirmed",
+      "createdAt": "2026-10-24T11:54:49.624Z",
+      "source": "ai_chatbot"
+    }
+  ]
+}
