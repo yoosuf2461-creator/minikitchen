@@ -27,8 +27,74 @@ function formatMenuContext(menu: MenuItem[]): string {
 
 function formatHoursContext(info: RestaurantInfo): string {
   return info.hours
-    .map((h) => `${h.day}: ${h.isClosed ? 'Closed' : `${h.open} - ${h.close}`}`)
+    .map((h) => `${h.day}: ${h.isClosed ? 'Closed (Kitchen Rest)' : `${h.open} - ${h.close}`}`)
     .join(', ');
+}
+
+export function getCurrentTemporalContext(info: RestaurantInfo) {
+  const now = new Date();
+  const timeZone = 'Asia/Colombo'; // MiniKitchen Colombo location timezone (UTC+5:30)
+
+  const dayFormatter = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'long' });
+  const dateFormatter = new Intl.DateTimeFormat('en-CA', { timeZone }); // YYYY-MM-DD
+  const prettyDateFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const timeFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
+  const currentDay = dayFormatter.format(now); // e.g. "Monday"
+  const currentDate = dateFormatter.format(now); // e.g. "2026-10-26"
+  const currentPrettyDate = prettyDateFormatter.format(now); // e.g. "October 26, 2026"
+  const currentTime = timeFormatter.format(now); // e.g. "09:30"
+
+  const todayHours = info.hours.find((h) => h.day.toLowerCase() === currentDay.toLowerCase());
+  const isTodayClosed = Boolean(
+    todayHours &&
+      (todayHours.isClosed ||
+        todayHours.open.toLowerCase().includes('closed') ||
+        todayHours.close.toLowerCase().includes('rest'))
+  );
+
+  const todayStatus = isTodayClosed
+    ? `CLOSED today (${currentDay}) for Kitchen Rest.`
+    : `OPEN today (${currentDay}): ${todayHours?.open} – ${todayHours?.close}`;
+
+  // Next open day calculation
+  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  let nextOpenDay = '';
+  let nextOpenHours = '';
+  if (isTodayClosed) {
+    const todayIdx = dayNames.indexOf(currentDay);
+    for (let i = 1; i <= 7; i++) {
+      const checkDay = dayNames[(todayIdx + i) % 7];
+      const h = info.hours.find((x) => x.day.toLowerCase() === checkDay.toLowerCase());
+      if (h && !h.isClosed && !h.open.toLowerCase().includes('closed')) {
+        nextOpenDay = checkDay;
+        nextOpenHours = `${h.open} – ${h.close}`;
+        break;
+      }
+    }
+  }
+
+  return {
+    currentDay,
+    currentDate,
+    currentPrettyDate,
+    currentTime,
+    todayHours,
+    isTodayClosed,
+    todayStatus,
+    nextOpenDay,
+    nextOpenHours,
+  };
 }
 
 export async function processChat(
@@ -101,12 +167,38 @@ async function callGeminiAPI(
 ): Promise<ChatResponseOutput | null> {
   const ai = new GoogleGenAI({ apiKey });
 
+  const temporal = getCurrentTemporalContext(info);
+
   const systemInstruction = `You are Remy, the gracious, culinary-savvy AI Concierge for MiniKitchen restaurant.
 Location: ${info.address}, ${info.city}. Phone: ${info.phone}. Email: ${info.email}.
-Operating Hours: ${formatHoursContext(info)}.
+
+LIVE CLOCK & REAL-TIME TEMPORAL CONTEXT (STRICT GROUND TRUTH):
+• Today's Exact Day of Week: ${temporal.currentDay}
+• Today's Exact Date: ${temporal.currentDate} (${temporal.currentPrettyDate})
+• Current Local Time: ${temporal.currentTime} (Asia/Colombo Sri Lanka Time, UTC+5:30)
+• Today's Operational Status: ${temporal.todayStatus}
+${temporal.isTodayClosed ? `• Next Open Service: Reopening on ${temporal.nextOpenDay} (${temporal.nextOpenHours})` : ''}
+
+WEEKLY OPERATING HOURS SCHEDULE:
+${formatHoursContext(info)}.
 
 LIVE RESTAURANT MENU (Live from kitchen database):
 ${formatMenuContext(menu)}
+
+TEMPORAL ACCURACY & OPERATING HOURS RULES:
+1. STRICT GROUND TRUTH: You MUST use the live clock above. Today is ${temporal.currentDay}, ${temporal.currentPrettyDate}. NEVER claim today is Wednesday or any other day.
+2. TODAY'S HOURS / OPEN STATUS:
+${
+  temporal.isTodayClosed
+    ? `   - Today is ${temporal.currentDay}, and the restaurant is CLOSED for our weekly culinary rest (Kitchen Rest).
+   - If a guest asks "are you open today?" or "what are your hours today?", politely inform them that today (${temporal.currentDay}) our kitchen is resting, and that we look forward to welcoming them when we reopen tomorrow (${temporal.nextOpenDay}) from ${temporal.nextOpenHours}!
+   - If a guest asks to reserve for "today" or "tonight" on ${temporal.currentDay}, warmly inform them that we are closed tonight for our weekly rest, but you would be delighted to arrange a table for tomorrow (${temporal.nextOpenDay}) or any upcoming day.`
+    : `   - Today is ${temporal.currentDay}, and we are OPEN today from ${temporal.todayHours?.open} to ${temporal.todayHours?.close}.`
+}
+3. CALENDAR REFERENCES:
+   - When a guest says "today" or "tonight", the date is ${temporal.currentDate} (${temporal.currentDay}).
+   - When a guest says "tomorrow", the date is the day after ${temporal.currentDate} (${temporal.nextOpenDay || 'tomorrow'}).
+   - When a guest mentions a specific day (e.g. "Tuesday", "Friday"), match it to the upcoming occurrence.
 
 YOUR ROLES & STRICT GUIDELINES:
 1. Answer guest inquiries about MiniKitchen, cuisine, atmosphere, hours, and menu with elegance and accuracy.
@@ -212,7 +304,7 @@ YOUR ROLES & STRICT GUIDELINES:
         guestName: String(args.guestName || 'Guest'),
         phone: isEmail ? '' : contactStr,
         email: isEmail ? contactStr : '',
-        date: String(args.date || new Date().toISOString().split('T')[0]),
+        date: String(args.date || temporal.currentDate),
         time: String(args.time || '19:00'),
         guestCount: Number(args.guestCount) || 2,
         specialRequests: args.specialRequests ? String(args.specialRequests) : undefined,
@@ -257,6 +349,7 @@ async function fallbackConciergeEngine(
   menu: MenuItem[],
   info: RestaurantInfo
 ): Promise<ChatResponseOutput> {
+  const temporal = getCurrentTemporalContext(info);
   const latestUserMsg = [...messages].reverse().find((m) => m.role === 'user')?.content.toLowerCase() || '';
   const fullConversation = messages.map((m) => `${m.role}: ${m.content}`).join('\n');
 
@@ -298,10 +391,40 @@ async function fallbackConciergeEngine(
   }
 
   // Inquiries about hours, location, contact
-  if (latestUserMsg.includes('hour') || latestUserMsg.includes('open') || latestUserMsg.includes('time') || latestUserMsg.includes('close')) {
-    const hours = info.hours.map((h) => `• **${h.day}**: ${h.isClosed ? 'Kitchen Rest' : `${h.open} – ${h.close}`}`).join('\n');
+  if (
+    latestUserMsg.includes('hour') ||
+    latestUserMsg.includes('open') ||
+    latestUserMsg.includes('closed') ||
+    latestUserMsg.includes('time') ||
+    latestUserMsg.includes('close') ||
+    latestUserMsg.includes('today') ||
+    latestUserMsg.includes('tonight')
+  ) {
+    const hours = info.hours
+      .map((h) => `• **${h.day}**: ${h.isClosed ? 'Closed (Kitchen Rest)' : `${h.open} – ${h.close}`}`)
+      .join('\n');
+
+    if (
+      latestUserMsg.includes('today') ||
+      latestUserMsg.includes('tonight') ||
+      latestUserMsg.includes('now') ||
+      latestUserMsg.includes('open')
+    ) {
+      if (temporal.isTodayClosed) {
+        return {
+          reply: `Today is **${temporal.currentDay}, ${temporal.currentPrettyDate}**, and MiniKitchen is closed for our weekly culinary rest (Kitchen Rest).\n\nWe reopen tomorrow (**${temporal.nextOpenDay}**) from **${temporal.nextOpenHours}**.\n\nWould you like to reserve a table for tomorrow or another evening this week?`,
+          modelUsed: 'MiniKitchen Concierge AI',
+        };
+      } else {
+        return {
+          reply: `Today is **${temporal.currentDay}, ${temporal.currentPrettyDate}**, and we are open! Today's service hours are **${temporal.todayHours?.open} – ${temporal.todayHours?.close}**.\n\nWould you like to reserve a table for this evening?`,
+          modelUsed: 'MiniKitchen Concierge AI',
+        };
+      }
+    }
+
     return {
-      reply: `Here are MiniKitchen's operating hours:\n\n${hours}\n\nWe are located at **${info.address}, ${info.city}**. Dinner service begins at 18:00 (Lunch Fri–Sun from 12:00). Would you like to book a table?`,
+      reply: `Today is **${temporal.currentDay}, ${temporal.currentPrettyDate}** (${temporal.todayStatus}).\n\nHere are MiniKitchen's weekly operating hours:\n\n${hours}\n\nWe are located at **${info.address}, ${info.city}**. Would you like to reserve a table?`,
       modelUsed: 'MiniKitchen Concierge AI',
     };
   }
@@ -375,12 +498,11 @@ async function fallbackConciergeEngine(
       fullConversation.match(/at\s+(\d{1,2}(?::\d{2})?)/i);
     const time = timeMatch ? timeMatch[1].toUpperCase() : '19:30';
 
-    // Extract date (e.g. "tomorrow", "tonight", "october 26", "2026-10-25") - default to today
+    // Extract date (e.g. "tomorrow", "tonight", "october 26", "2026-10-25") - default to today in Colombo
     let date: string | null = null;
-    const now = new Date();
     if (fullConversation.toLowerCase().includes('tomorrow')) {
-      const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-      date = tomorrow.toISOString().split('T')[0];
+      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Colombo' }).format(tomorrow);
     } else {
       const dateRegexMatch = fullConversation.match(/\b(202\d-\d{1,2}-\d{1,2})\b/);
       if (dateRegexMatch) {
@@ -390,7 +512,7 @@ async function fallbackConciergeEngine(
         if (namedDateMatch) {
           date = `This ${namedDateMatch[1].charAt(0).toUpperCase() + namedDateMatch[1].slice(1).toLowerCase()}`;
         } else {
-          date = now.toISOString().split('T')[0];
+          date = temporal.currentDate;
         }
       }
     }
@@ -420,7 +542,7 @@ async function fallbackConciergeEngine(
       guestName: name || 'Valued Guest',
       phone: phone || '',
       email: email || '',
-      date: date || new Date().toISOString().split('T')[0],
+      date: date || temporal.currentDate,
       time: time || '19:30',
       guestCount: guestCount || 2,
       specialRequests: 'Booked via MiniKitchen AI Concierge chat',
